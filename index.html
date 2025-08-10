@@ -237,4 +237,261 @@
   var elStatGood=$('#statGood'), elStatBad=$('#statBad'), elStatAcc=$('#statAcc');
   var elQIndex=$('#qIndex'), elTimer=$('#timer'), elStreak=$('#streak'), elBest=$('#bestStreak'), elLast=$('#lastResult');
   var elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
-  var elLblP1=$('#lblP1'), elLblP2=$('#
+  var elLblP1=$('#lblP1'), elLblP2=$('#lblP2'), elTurn=$('#turnBanner');
+
+  var fxGood=$('#fxGood'), fxBad=$('#fxBad'), fxGoodImg=$('#fxGoodImg'), fxBadImg=$('#fxBadImg');
+
+  // Turn overlay
+  var overlay=$('#turnOverlay'), overlayText=$('#turnText'), overlayAvatar=$('#turnAvatar'), btnBeginTurn=$('#btnBeginTurn');
+
+  // ===== State =====
+  var GOOD_IMGS=["images/correct1.webp","images/correct2.webp"];
+  var BAD_IMGS =["images/wrong1.webp"];
+  var P1_IMG="players/p1.png";
+  var P2_IMG="players/p2.png";
+
+  var running=false, current=null, qCount=0;
+  var good=0,bad=0,streak=0,bestStreak=0;
+  var p1={ok:0,no:0}, p2={ok:0,no:0};
+  var tick=null, remaining=0;
+
+  // ===== Sound (WebAudio) =====
+  var AC=(window.AudioContext||window.webkitAudioContext)? new (window.AudioContext||window.webkitAudioContext)() : null;
+  var master=AC? AC.createGain():null; if(master){ master.connect(AC.destination); master.gain.value=+elVol.value; }
+  function soundOn(){ return elSoundOn.value==="1" && AC; }
+  elVol.addEventListener('input',function(){ if(master) master.gain.value=+elVol.value; });
+
+  function tone(freq,dur,type,when,vol){
+    if(!soundOn()) return;
+    dur = dur||0.12; type=type||'sine'; when=when||0; vol=vol||0.3;
+    var o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.value=freq; o.connect(g); g.connect(master);
+    var t=AC.currentTime+when; o.start(t);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(vol,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.stop(t+dur+0.02);
+  }
+  var sfx={
+    correct:function(){[523,659,784].forEach(function(f,i){tone(f,0.10,'triangle',i*0.08,0.25);});},
+    wrong:function(){tone(200,0.25,'sawtooth',0,0.35); tone(140,0.22,'sawtooth',0.04,0.28);},
+    tick:function(){tone(900,0.03,'square',0,0.12);},
+    timeout:function(){[523,392,330].forEach(function(f,i){tone(f,0.12,'sine',i*0.09,0.22);});}
+  };
+
+  // ===== Math =====
+  function clamp(n,a,b){return Math.min(Math.max(n,a),b);}
+  function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+  function pickOp(m){return m!=='mix'?m:['add','sub','mul','div'][rnd(0,3)];}
+  function rangeFor(op,L){
+    L=clamp(+L,1,10);
+    var add=[9,12,20,30,40,60,90,120,180,250][L-1];
+    var mul=[5,6,8,9,10,12,15,18,20,25][L-1];
+    if(op==='mul') return {min:0,max:mul};
+    if(op==='div') return {min:1,max:mul};
+    return {min:0,max:add};
+  }
+  var ops={
+    add:{gen:function(L){var r=rangeFor('add',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:a+" + "+b,answer:a+b};}},
+    sub:{gen:function(L){var r=rangeFor('sub',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);if(b>a){var t=a;a=b;b=t;}return {text:a+" − "+b,answer:a-b};}},
+    mul:{gen:function(L){var r=rangeFor('mul',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:a+" × "+b,answer:a*b};}},
+    div:{gen:function(L){var r=rangeFor('div',L),b=rnd(r.min,r.max),q=rnd(r.min,r.max),a=b*q;return {text:a+" ÷ "+b,answer:q};}}
+  };
+
+  // ===== Helpers =====
+  function flash(el,list,hold){
+    hold = hold||600;
+    var pick=list[rnd(0,list.length-1)];
+    (el===fxGood?fxGoodImg:fxBadImg).src=pick;
+    el.classList.add('show'); setTimeout(function(){el.classList.remove('show');},hold);
+  }
+  function accuracy(){ var t=good+bad; return !t?'—':Math.round((good/t)*100); }
+  function updateStats(){
+    elStatGood.textContent=good; elStatBad.textContent=bad;
+    var acc=accuracy(); elStatAcc.textContent=acc==='—'?'—':(acc+'%');
+    elStreak.textContent=streak; elBest.textContent=bestStreak;
+  }
+  function sessionLimitReached(){
+    var max = (elMaxQs.value==='∞') ? Infinity : parseInt(elMaxQs.value,10);
+    return (good+bad)>=max;
+  }
+
+  // turn banner + active row
+  function activeName(){ return turn==='p1' ? (elNameP1.value||'Player 1') : (elNameP2.value||'Player 2'); }
+  function updateTurnBanner(){ elTurn.textContent = elPlayers.value==='2' ? ('Turn: '+activeName()) : '—'; }
+  function setRowVis(){
+    var p1Active = (turn==='p1');
+    rowP1.classList.toggle('hidden',!p1Active);
+    rowP2.classList.toggle('hidden', p1Active);
+    elP1.disabled=!p1Active; elP2.disabled=p1Active;
+    (p1Active?elP1:elP2).focus();
+  }
+
+  // ===== UI mode =====
+  function uiMode(){
+    var two = elPlayers.value==="2";
+    elSingle.style.display = two ? 'none':'grid';
+    elMulti .style.display = two ? 'grid':'none';
+    elVersus.style.display = two ? 'grid':'none';
+    elLblP1.textContent=(elNameP1.value||'Player 1')+' ✓ / ✗';
+    elLblP2.textContent=(elNameP2.value||'Player 2')+' ✓ / ✗';
+    $('#answerP1').placeholder = (elNameP1.value||'Player 1');
+    $('#answerP2').placeholder = (elNameP2.value||'Player 2');
+    updateTurnBanner();
+    if(two) setRowVis();
+  }
+
+  // ===== Turn overlay (hand-off) =====
+  var turn='p1', awaitingTurnStart=false;
+  function showTurnOverlay(){
+    if(elPlayers.value!=='2') return;
+    overlayText.textContent = 'Next up: ' + activeName();
+    overlayAvatar.src = (turn==='p1')? P1_IMG : P2_IMG;
+    overlayAvatar.onerror = function(){ overlayAvatar.style.display='none'; };
+    overlayAvatar.onload  = function(){ overlayAvatar.style.display='block'; };
+    overlay.classList.add('show');
+    awaitingTurnStart = true;
+  }
+  function hideTurnOverlay(){ overlay.classList.remove('show'); awaitingTurnStart=false; }
+  btnBeginTurn.addEventListener('click', function(){
+    hideTurnOverlay();
+    setRowVis();
+    next(true); // first question of the turn
+  });
+  window.addEventListener('keydown', function(e){
+    if(awaitingTurnStart && (e.key===' ' || e.key==='Enter')){ e.preventDefault(); btnBeginTurn.click(); }
+  });
+
+  // ===== Core flow (kept from working) =====
+  function start(){
+    if(running) return;
+    if(AC && AC.state==='suspended'){ AC.resume(); }
+    running=true; qCount=0; good=bad=0; streak=bestStreak=0; p1={ok:0,no:0}; p2={ok:0,no:0};
+    elStart.textContent='Running…'; elStart.disabled=true;
+
+    if(elPlayers.value==="2"){
+      // randomize who starts, then hand-off overlay before first question
+      turn = (Math.random()<0.5)?'p1':'p2';
+      updateTurnBanner();
+      showTurnOverlay();
+    }else{
+      // single player
+      elAns1.disabled=false; next(true); elAns1.focus();
+    }
+    updateStats(); uiMode();
+  }
+  function reset(){
+    stopTimer(); running=false; current=null; qCount=good=bad=streak=bestStreak=0; p1={ok:0,no:0}; p2={ok:0,no:0};
+    elStart.textContent='Start ▶'; elStart.disabled=false;
+    [elAns1,elP1,elP2].forEach(function(i){i.value=''; i.disabled=true;});
+    elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
+    elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
+    overlay.classList.remove('show'); awaitingTurnStart=false;
+  }
+  function next(initial){
+    if(awaitingTurnStart) return;
+    stopTimer();
+    if(!initial && sessionLimitReached()) return finish();
+
+    qCount++;
+    var mode=pickOp(elMode.value), L=+elDiff.value;
+    current=ops[mode].gen(L);
+    elFormula.textContent=current.text+' = ?';
+    elQIndex.textContent=qCount;
+    [elAns1,elP1,elP2].forEach(function(i){i.value='';});
+    elFeedback.textContent=' '; elFeedback.className='feedback';
+    startTimerIfNeeded();
+  }
+  function finish(){
+    stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
+    var acc=accuracy();
+    elFeedback.textContent='Session complete — '+good+' correct, '+bad+' wrong, accuracy '+(acc==='—'?'—':acc+'%');
+    elFeedback.className='feedback '+(good>=bad?'ok':'no');
+  }
+
+  // ===== Answer submit =====
+  function leadText(){ var d=p1.ok-p2.ok; return d===0?'Tied':(d>0?(elNameP1.value||'P1')+' +'+d:(elNameP2.value||'P2')+' +'+(-d)); }
+  function handleSubmit(val, who){
+    if(awaitingTurnStart) return;
+    if(!running||!current||val==='') return;
+    var num=Number(val), correct=(num===current.answer);
+    if(correct){
+      good++; streak++; bestStreak=Math.max(bestStreak,streak);
+      if(who==='p1'){ p1.ok++; elP1Score.textContent=p1.ok+' / '+p1.no; elLead.textContent=leadText(); }
+      if(who==='p2'){ p2.ok++; elP2Score.textContent=p2.ok+' / '+p2.no; elLead.textContent=leadText(); }
+      elFeedback.textContent=(who==='solo'?'Correct!':( (who==='p1'?(elNameP1.value||'Player 1'):(elNameP2.value||'Player 2'))+' scores!'));
+      elFeedback.className='feedback ok';
+      elLast.textContent='✓'; elLast.style.color='var(--good)';
+      sfx.correct(); flash(fxGood,GOOD_IMGS,500);
+      setTimeout(function(){ next(); },180);
+    } else {
+      bad++; streak=0;
+      if(who==='p1'){ p1.no++; elP1Score.textContent=p1.ok+' / '+p1.no; }
+      if(who==='p2'){ p2.no++; elP2Score.textContent=p2.ok+' / '+p2.no; }
+      elFeedback.textContent='Try again'; elFeedback.className='feedback no';
+      elLast.textContent='✗'; elLast.style.color='var(--bad)';
+      sfx.wrong(); flash(fxBad,BAD_IMGS,700);
+    }
+    updateStats();
+  }
+
+  function skip(){
+    if(awaitingTurnStart||!running) return;
+    bad++; streak=0; elLast.textContent='⏭'; elLast.style.color='var(--warn)'; updateStats();
+    flash(fxBad,BAD_IMGS,700); next();
+  }
+
+  // ===== Timer (unchanged from working) =====
+  function startTimerIfNeeded(){
+    var sec=+elTimerSec.value;
+    if(!sec){ elTimer.textContent='Timer: off'; return; }
+    remaining=sec; renderTimer(); stopTimer();
+    tick=setInterval(function(){
+      remaining--;
+      if(remaining>0){ sfx.tick(); renderTimer(); return; }
+      bad++; streak=0; updateStats();
+      elFeedback.textContent='Time out — next!'; elFeedback.className='feedback no';
+      elLast.textContent='⏲'; elLast.style.color='var(--bad)';
+      sfx.timeout(); flash(fxBad,BAD_IMGS,700);
+      next();
+    },1000);
+  }
+  function stopTimer(){ if(tick){ clearInterval(tick); tick=null; } }
+  function renderTimer(){
+    var warn=remaining<=Math.max(3,Math.floor(+elTimerSec.value*0.25));
+    elTimer.textContent='⏱ '+remaining+'s'; elTimer.style.color=warn?'var(--warn)':'var(--ink)';
+  }
+
+  // ===== Events =====
+  elDiff.addEventListener('input',function(){ elDiffVal.textContent=elDiff.value; });
+  elTimerSec.addEventListener('input',function(){ elTimerVal.textContent=elTimerSec.value+'s'; });
+
+  elStart.addEventListener('click',start);
+  elReset.addEventListener('click',reset);
+
+  elBtn1.addEventListener('click',function(){ handleSubmit(elAns1.value.trim(),'solo'); });
+  elBtnP1.addEventListener('click',function(){ if(elPlayers.value==='2') handleSubmit(elP1.value.trim(),'p1'); });
+  elBtnP2.addEventListener('click',function(){ if(elPlayers.value==='2') handleSubmit(elP2.value.trim(),'p2'); });
+
+  elAns1.addEventListener('keydown',function(e){ if(e.key==='Enter')handleSubmit(elAns1.value.trim(),'solo'); if(e.key==='Escape')elAns1.value=''; });
+  elP1  .addEventListener('keydown',function(e){ if(e.key==='Enter'&&elPlayers.value==='2')handleSubmit(elP1.value.trim(),'p1'); if(e.key==='Escape')elP1.value=''; });
+  elP2  .addEventListener('keydown',function(e){ if(e.key==='Enter'&&elPlayers.value==='2')handleSubmit(elP2.value.trim(),'p2'); if(e.key==='Escape')elP2.value=''; });
+
+  window.addEventListener('keydown',function(e){
+    if(e.key && e.key.toLowerCase()==='s') skip();
+  });
+
+  // numeric-only
+  [elAns1,elP1,elP2].forEach(function(inp){
+    inp.addEventListener('input',function(){ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); });
+  });
+
+  // preload overlays
+  fxGoodImg.src=GOOD_IMGS[0]; fxBadImg.src=BAD_IMGS[0];
+
+  // init
+  reset(); uiMode();
+})();
+</script>
+</body>
+</html>
