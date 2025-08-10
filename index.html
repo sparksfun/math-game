@@ -19,6 +19,13 @@
   .range-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
   .chip{background:var(--chip);border:1px solid #2b3155;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
 
+  /* Names row full width, with inline avatar previews (players/) */
+  .group.names{grid-column:1 / -1}
+  .names-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .namebox{display:grid;grid-template-columns:40px 1fr;align-items:center;gap:8px}
+  .name-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid #2b3155}
+  #nameP1,#nameP2{min-width:220px;font-size:16px}
+
   .btn{appearance:none;border:1px solid #2c335a;background:linear-gradient(180deg,#1e2550,#141a3b);color:#fff;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;letter-spacing:.2px;transition:transform .03s ease,filter .15s ease,border-color .15s ease}
   .btn:hover{filter:brightness(1.08);border-color:#3a4381} .btn:active{transform:translateY(1px) scale(.997)}
   .btn.ghost{background:#0e1330;color:var(--muted)} .btn.good{background:linear-gradient(180deg,#16553f,#103c2d);border-color:#1f6b4f;color:#d3ffe9}
@@ -48,6 +55,7 @@
   .fx-overlay.show{opacity:1}
   .fx-overlay img{max-width:min(60vmin,520px);max-height:70vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.55);border:2px solid #2b3155}
 
+  /* Turn overlay */
   .turn-overlay{position:fixed;inset:0;background:rgba(5,8,20,.88);backdrop-filter:blur(6px);display:grid;place-items:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s ease}
   .turn-overlay.show{opacity:1;pointer-events:auto}
   .turn-card{background:var(--panel);border:1px solid #2b3155;border-radius:18px;padding:28px;display:grid;gap:14px;place-items:center;box-shadow:0 20px 60px rgba(0,0,0,.45)}
@@ -56,9 +64,18 @@
 
   footer{margin-top:14px;color:var(--muted);font-size:12px;display:flex;gap:12px;align-items:center}
 
-  @media (max-width:1200px){ .controls{grid-template-columns:repeat(4,minmax(0,1fr));} }
-  @media (max-width:860px){ .controls{grid-template-columns:1fr 1fr} .grid{grid-template-columns:1fr} }
-  @media (max-width:700px){ .controls{grid-template-columns:1fr;} }
+  @media (max-width:1200px){
+    .controls{grid-template-columns:repeat(4,minmax(0,1fr));}
+    .group.names{grid-column:1 / -1;}
+    .names-row{grid-template-columns:1fr}
+  }
+  @media (max-width:860px){
+    .controls{grid-template-columns:1fr 1fr}
+    .grid{grid-template-columns:1fr}
+  }
+  @media (max-width:700px){
+    .controls{grid-template-columns:1fr;}
+  }
 
   .final-overlay{position:fixed;inset:0;background:rgba(5,8,20,.88);backdrop-filter:blur(6px);
     display:grid;place-items:center;z-index:1100;opacity:0;pointer-events:none;transition:opacity .2s ease}
@@ -117,7 +134,20 @@
         </select>
       </div>
 
-      <!-- (Name inputs removed; names are fixed: Aliah & Aliana) -->
+      <!-- Names + avatar previews -->
+      <div class="group names">
+        <label>Names</label>
+        <div class="names-row">
+          <div class="namebox">
+            <img id="nameAvatarP1" class="name-avatar" src="players/p1.png" alt="P1" onerror="this.style.visibility='hidden'">
+            <input id="nameP1" type="text" placeholder="Player 1" value="Player 1" />
+          </div>
+          <div class="namebox">
+            <img id="nameAvatarP2" class="name-avatar" src="players/p2.png" alt="P2" onerror="this.style.visibility='hidden'">
+            <input id="nameP2" type="text" placeholder="Player 2" value="Player 2" />
+          </div>
+        </div>
+      </div>
 
       <!-- Audio controls -->
       <div class="group">
@@ -162,12 +192,12 @@
           <div id="multiRows" class="answer-rows" style="display:none">
             <div class="row" id="rowP1">
               <img id="avatarP1" class="avatar" src="players/p1.png" alt="P1" onerror="this.style.display='none'">
-              <input id="answerP1" class="p1" type="text" inputmode="numeric" placeholder="Aliah…" disabled />
+              <input id="answerP1" class="p1" type="text" inputmode="numeric" placeholder="P1…" disabled />
               <button id="btnSubmitP1" class="btn">Submit</button>
             </div>
             <div class="row" id="rowP2">
               <img id="avatarP2" class="avatar" src="players/p2.png" alt="P2" onerror="this.style.display='none'">
-              <input id="answerP2" class="p2" type="text" inputmode="numeric" placeholder="Aliana…" disabled />
+              <input id="answerP2" class="p2" type="text" inputmode="numeric" placeholder="P2…" disabled />
               <button id="btnSubmitP2" class="btn">Submit</button>
             </div>
           </div>
@@ -183,8 +213,8 @@
         </div>
         <!-- per-player stats -->
         <div id="versus" class="stats" style="display:none">
-          <div class="stat"><label id="lblP1">Aliah ✓ / ✗</label><b id="p1Score">0 / 0</b></div>
-          <div class="stat"><label id="lblP2">Aliana ✓ / ✗</label><b id="p2Score">0 / 0</b></div>
+          <div class="stat"><label id="lblP1">P1 ✓ / ✗</label><b id="p1Score">0 / 0</b></div>
+          <div class="stat"><label id="lblP2">P2 ✓ / ✗</label><b id="p2Score">0 / 0</b></div>
           <div class="stat"><label>Lead</label><b id="lead">—</b></div>
         </div>
 
@@ -194,6 +224,7 @@
       <div class="card">
         <div class="timer" id="timer">Timer: off</div>
         <div class="stat" style="margin-top:12px"><label>Question</label><b id="qIndex">0</b></div>
+        <!-- Removed Streak, Best Streak, Last result -->
       </div>
     </section>
   </div>
@@ -228,15 +259,12 @@
 
 <script>
 (function(){
-  // ===== Constants (fixed names) =====
-  const NAME_P1 = 'Aliah';
-  const NAME_P2 = 'Aliana';
-
   // ===== DOM =====
   var $=function(s){return document.querySelector(s);}
   var elMode=$('#mode'), elDiff=$('#difficulty'), elDiffVal=$('#diffVal');
   var elTimerSec=$('#timerSec'), elTimerVal=$('#timerVal');
   var elRounds=$('#rounds'), elPlayers=$('#players');
+  var elNameP1=$('#nameP1'), elNameP2=$('#nameP2');
 
   var elMusicOn=$('#musicOn'), elMusicVol=$('#musicVol'), BGM=$('#bgm');
   var elSoundOn=$('#soundOn'), elVol=$('#volume'), SND_OK=$('#sndCorrect'), SND_NO=$('#sndWrong');
@@ -369,7 +397,7 @@
   }
 
   // banner + active row
-  function activeName(){ return turn==='p1' ? NAME_P1 : NAME_P2; }
+  function activeName(){ return turn==='p1' ? (elNameP1.value||'Player 1') : (elNameP2.value||'Player 2'); }
   function updateTurnBanner(){ elTurn.textContent = elPlayers.value==='2' ? ('Turn: '+activeName()) : '—'; }
   function setRowVis(){
     var p1Active = (turn==='p1');
@@ -385,14 +413,16 @@
     elSingle.style.display = two ? 'none':'grid';
     elMulti .style.display = two ? 'grid':'none';
     elVersus.style.display = two ? 'grid':'none';
-    elLblP1.textContent= NAME_P1+' ✓ / ✗';
-    elLblP2.textContent= NAME_P2+' ✓ / ✗';
-    $('#answerP1').placeholder = NAME_P1;
-    $('#answerP2').placeholder = NAME_P2;
+    elLblP1.textContent=(elNameP1.value||'Player 1')+' ✓ / ✗';
+    elLblP2.textContent=(elNameP2.value||'Player 2')+' ✓ / ✗';
+    $('#answerP1').placeholder = (elNameP1.value||'Player 1');
+    $('#answerP2').placeholder = (elNameP2.value||'Player 2');
     updateTurnBanner();
     if(two) setRowVis();
   }
   elPlayers.addEventListener('change',uiMode);
+  elNameP1.addEventListener('input',uiMode);
+  elNameP2.addEventListener('input',uiMode);
 
   // ===== Turn overlay (hand-off) =====
   function showTurnOverlay(){
@@ -408,7 +438,11 @@
   btnBeginTurn.addEventListener('click', function(){
     hideTurnOverlay();
     if(elMusicOn.value==="1"){ try{ BGM.volume=+elMusicVol.value; BGM.play(); }catch(e){} }
-    qCount = 0; elQIndex.textContent = '0';
+
+    // RESET per-player question counter at the start of each player's turn
+    qCount = 0;
+    elQIndex.textContent = '0';
+
     setRowVis();
     next(true);
   });
@@ -429,6 +463,7 @@
     if(elPlayers.value==="2"){
       turn = (Math.random()<0.5)?'p1':'p2';
       updateTurnBanner();
+      // ensure counter shows 0 before first player's first question
       qCount = 0; elQIndex.textContent = '0';
       showTurnOverlay();
     }else{
@@ -478,7 +513,7 @@
     var scoreLine = '';
     if(elPlayers.value==='2'){
       var p1Score=p1.ok, p2Score=p2.ok;
-      var n1=NAME_P1, n2=NAME_P2;
+      var n1=(elNameP1.value||'Player 1'), n2=(elNameP2.value||'Player 2');
       var winner;
       if(p1Score>p2Score) winner = n1 + ' wins!';
       else if(p2Score>p1Score) winner = n2 + ' wins!';
@@ -493,6 +528,7 @@
       scoreLine = good+' correct, '+bad+' wrong, accuracy '+(acc==='—'?'—':acc+'%');
     }
 
+    // clear small footer; rely entirely on modal
     elFeedback.textContent=' ';
     elFeedback.className='feedback';
 
@@ -502,7 +538,7 @@
 
   // ===== Answer submit =====
   function consumeRound(){ if(elPlayers.value==='2'){ (turn==='p1'?p1:p2).played++; } }
-  function leadText(){ var d=p1.ok-p2.ok; return d===0?'Tied':(d>0?(NAME_P1)+' +'+d:(NAME_P2)+' +'+(-d)); }
+  function leadText(){ var d=p1.ok-p2.ok; return d===0?'Tied':(d>0?(elNameP1.value||'P1')+' +'+d:(elNameP2.value||'P2')+' +'+(-d)); }
 
   function handleSubmit(val, who){
     if(awaitingTurnStart) return;
