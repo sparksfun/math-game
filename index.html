@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Math Sprint — H2H</title>
+<title>Math Sprint — Head-to-Head</title>
 <style>
   :root{--bg:#0f1220;--panel:#161a2e;--ink:#e9ecf1;--muted:#aab3c5;--good:#38d39f;--bad:#ff6b6b;--warn:#ffb020;--chip:#232843}
   *{box-sizing:border-box} html,body{height:100%}
@@ -133,7 +133,7 @@
           <div class="stat"><label>Total Incorrect</label><b id="statBad">0</b></div>
           <div class="stat"><label>Accuracy</label><b id="statAcc">—</b></div>
         </div>
-        <!-- per-player stats (only shown in H2H) -->
+        <!-- per-player stats -->
         <div id="versus" class="stats" style="display:none">
           <div class="stat"><label>P1 ✓ / ✗</label><b id="p1Score">0 / 0</b></div>
           <div class="stat"><label>P2 ✓ / ✗</label><b id="p2Score">0 / 0</b></div>
@@ -153,18 +153,17 @@
     </section>
   </div>
 
-  <!-- Overlays -->
+  <!-- overlays -->
   <div id="fxGood" class="fx-overlay"><img id="fxGoodImg" alt="Correct"></div>
   <div id="fxBad"  class="fx-overlay"><img id="fxBadImg"  alt="Incorrect"></div>
 
 <script>
 (() => {
-  // ------- DOM -------
+  // --- DOM ---
   const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
   const elMode=$('#mode'), elDiff=$('#difficulty'), elDiffVal=$('#diffVal');
   const elTimerSec=$('#timerSec'), elTimerVal=$('#timerVal'), elMaxQs=$('#maxQs');
-  const elPlayers=$('#players');
-  const elSoundOn=$('#soundOn'), elVol=$('#volume');
+  const elPlayers=$('#players'), elSoundOn=$('#soundOn'), elVol=$('#volume');
 
   const elStart=$('#btnStart'), elReset=$('#btnReset');
   const elSingle=$('#singleRows'), elMulti=$('#multiRows');
@@ -179,7 +178,7 @@
 
   const fxGood=$('#fxGood'), fxBad=$('#fxBad'), fxGoodImg=$('#fxGoodImg'), fxBadImg=$('#fxBadImg');
 
-  // ------- State -------
+  // --- State ---
   const GOOD_IMGS=["images/correct1.webp","images/correct2.webp"];
   const BAD_IMGS =["images/wrong1.webp"];
   let running=false, current=null, qCount=0;
@@ -187,39 +186,41 @@
   let p1={ok:0,no:0}, p2={ok:0,no:0};
   let tick=null, remaining=0;
 
-  // ------- Sound (WebAudio, tiny, fileless) -------
+  // --- Sound (WebAudio) ---
   const AC=new (window.AudioContext||window.webkitAudioContext)();
-  const gain=AC.createGain(); gain.connect(AC.destination); gain.gain.value=+elVol.value;
+  const master=AC.createGain(); master.connect(AC.destination); master.gain.value=+elVol.value;
   const soundOn=()=>elSoundOn.value==="1";
-  elVol.addEventListener('input',()=>gain.gain.value=+elVol.value);
+  elVol.addEventListener('input',()=>master.gain.value=+elVol.value);
 
-  function tone(freq,dur=0.12,type='sine',when=0){
+  function tone(freq,dur=0.12,type='sine',when=0,vol=0.3){
     if(!soundOn()) return;
-    const o=AC.createOscillator(); const g=AC.createGain();
-    o.type=type; o.frequency.value=freq; o.connect(g); g.connect(gain);
-    const t=AC.currentTime+when; o.start(t); g.gain.setValueAtTime(.001,t);
-    g.gain.exponentialRampToValueAtTime(.3,t+0.01);
-    g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    const o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.value=freq; o.connect(g); g.connect(master);
+    const t=AC.currentTime+when;
+    o.start(t);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(vol,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
     o.stop(t+dur+0.02);
   }
   const sfx={
-    correct(){ [523,659,784].forEach((f,i)=>tone(f,0.10,'triangle',i*0.08)); },
-    wrong(){ tone(180,0.25,'sawtooth'); tone(140,0.25,'sawtooth',0.02); },
-    tick(){ tone(900,0.03,'square'); },
-    timeout(){ [523,392,330].forEach((f,i)=>tone(f,0.12,'sine',i*0.09)); }
+    correct(){ [523,659,784].forEach((f,i)=>tone(f,0.10,'triangle',i*0.08,0.25)); },
+    wrong(){ tone(200,0.25,'sawtooth',0,0.35); tone(140,0.22,'sawtooth',0.04,0.28); },
+    tick(){ tone(900,0.03,'square',0,0.15); },
+    timeout(){ [523,392,330].forEach((f,i)=>tone(f,0.12,'sine',i*0.09,0.22)); }
   };
 
-  // ------- Helpers -------
+  // --- Math gen ---
   const clamp=(n,a,b)=>Math.min(Math.max(n,a),b);
   const rnd=(min,max)=>Math.floor(Math.random()*(max-min+1))+min;
   const pickOp=m=>m!=='mix'?m:['add','sub','mul','div'][rnd(0,3)];
   function rangeFor(op,L){
     L=clamp(+L,1,10);
-    const addmax=[9,12,20,30,40,60,90,120,180,250][L-1];
-    const mulmax=[5,6,8,9,10,12,15,18,20,25][L-1];
-    if(op==='mul') return {min:0,max:mulmax};
-    if(op==='div') return {min:1,max:mulmax};
-    return {min:0,max:addmax};
+    const add=[9,12,20,30,40,60,90,120,180,250][L-1];
+    const mul=[5,6,8,9,10,12,15,18,20,25][L-1];
+    if(op==='mul') return {min:0,max:mul};
+    if(op==='div') return {min:1,max:mul};
+    return {min:0,max:add};
   }
   const ops={
     add:{gen:L=>{const r=rangeFor('add',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:`${a} + ${b}`,answer:a+b}}},
@@ -228,13 +229,7 @@
     div:{gen:L=>{const r=rangeFor('div',L),b=rnd(r.min,r.max),q=rnd(r.min,r.max),a=b*q;return {text:`${a} ÷ ${b}`,answer:q}}}
   };
 
-  function flash(el,list,hold=600){
-    const pick=list[rnd(0,list.length-1)];
-    (el===fxGood?fxGoodImg:fxBadImg).src=pick;
-    el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),hold);
-  }
-
-  // ------- Flow -------
+  // --- UI flow ---
   function uiMode(){
     const two=elPlayers.value==="2";
     elSingle.style.display = two ? 'none':'grid';
@@ -247,24 +242,22 @@
     if(running) return;
     AC.resume?.();
     running=true; qCount=0; good=bad=0; streak=bestStreak=0; p1={ok:0,no:0}; p2={ok:0,no:0};
-    $('#btnStart').textContent='Running…'; $('#btnStart').disabled=true;
+    elStart.textContent='Running…'; elStart.disabled=true;
     (elPlayers.value==="2"?[$('#answerP1'),$('#answerP2')]:[$('#answer1')]).forEach(i=>i.disabled=false);
     next(true); ($$('[inputmode="numeric"]')[0]||elAns1).focus();
     updateStats(); uiMode();
   }
   function reset(){
     stopTimer(); running=false; current=null; qCount=good=bad=streak=bestStreak=0; p1={ok:0,no:0}; p2={ok:0,no:0};
-    $('#btnStart').textContent='Start ▶'; $('#btnStart').disabled=false;
+    elStart.textContent='Start ▶'; elStart.disabled=false;
     [elAns1,elP1,elP2].forEach(i=>{i.value=''; i.disabled=true;});
     elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
     updateStats(); elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
   }
-
   function sessionLimitReached(){
     const max=elMaxQs.value==='∞'?Infinity:parseInt(elMaxQs.value,10);
     return (good+bad)>=max;
   }
-
   function next(initial=false){
     stopTimer();
     if(!initial && sessionLimitReached()) return finish();
@@ -277,15 +270,15 @@
     elFeedback.textContent=' '; elFeedback.className='feedback';
     startTimerIfNeeded();
   }
-
   function finish(){
-    stopTimer(); running=false; $('#btnStart').textContent='Start ▶'; $('#btnStart').disabled=false;
+    stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
     const acc=accuracy();
     elFeedback.textContent=`Session complete — ${good} correct, ${bad} wrong, accuracy ${acc==='—'?'—':acc}%`;
     elFeedback.className='feedback '+(good>=bad?'ok':'no');
   }
 
-  function handleSubmit(val, who){ // who: 'solo' | 'p1' | 'p2'
+  // --- Answer handling ---
+  function handleSubmit(val, who){ // who: 'solo'|'p1'|'p2'
     if(!running||!current||val==='') return;
     const num=Number(val);
     if(num===current.answer){
@@ -306,26 +299,20 @@
     }
     updateStats();
   }
-
-  function leadText(){
-    const d=p1.ok-p2.ok; if(d===0) return 'Tied';
-    return (d>0?`P1 +${d}`:`P2 +${-d}`);
-  }
-
+  function leadText(){ const d=p1.ok-p2.ok; return d===0?'Tied':(d>0?`P1 +${d}`:`P2 +${-d}`); }
   function skip(){
     if(!running) return;
     bad++; streak=0; elLast.textContent='⏭'; elLast.style.color='var(--warn)'; updateStats();
     flash(fxBad,BAD_IMGS,700); next();
   }
 
-  // ------- Timer -------
+  // --- Timer ---
   function startTimerIfNeeded(){
     const sec=+elTimerSec.value;
     if(!sec){ elTimer.textContent='Timer: off'; return; }
     remaining=sec; renderTimer(); stopTimer();
     tick=setInterval(()=>{
-      remaining--;
-      sfx.tick();
+      remaining--; sfx.tick();
       if(remaining<=0){
         bad++; streak=0; updateStats();
         elFeedback.textContent='Time out — next!'; elFeedback.className='feedback no';
@@ -340,7 +327,7 @@
     elTimer.textContent=`⏱ ${remaining}s`; elTimer.style.color=warn?'var(--warn)':'var(--ink)';
   }
 
-  // ------- Stats -------
+  // --- Stats ---
   function accuracy(){ const t=good+bad; return !t?'—':Math.round((good/t)*100); }
   function updateStats(){
     elStatGood.textContent=good; elStatBad.textContent=bad;
@@ -348,7 +335,7 @@
     elStreak.textContent=streak; elBest.textContent=bestStreak;
   }
 
-  // ------- Wiring -------
+  // --- Events ---
   elDiff.addEventListener('input',()=>elDiffVal.textContent=elDiff.value);
   elTimerSec.addEventListener('input',()=>elTimerVal.textContent=`${elTimerSec.value}s`);
   elStart.addEventListener('click',start); elReset.addEventListener('click',reset);
@@ -358,18 +345,17 @@
 
   elAns1.addEventListener('keydown',e=>{if(e.key==='Enter')handleSubmit(elAns1.value.trim(),'solo'); if(e.key==='Escape')elAns1.value='';});
   elP1.addEventListener('keydown',e=>{if(e.key==='Enter')handleSubmit(elP1.value.trim(),'p1'); if(e.key==='Escape')elP1.value='';});
-  // Right Ctrl for P2 (works in most browsers)
+  // Right Ctrl for P2
   window.addEventListener('keydown',e=>{ if(e.code==='ControlRight') handleSubmit(elP2.value.trim(),'p2'); });
   elP2.addEventListener('keydown',e=>{if(e.key==='Enter')handleSubmit(elP2.value.trim(),'p2'); if(e.key==='Escape')elP2.value='';});
-
-  window.addEventListener('keydown',e=>{ if(e.key.toLowerCase()==='s')skip(); });
+  window.addEventListener('keydown',e=>{ if(e.key.toLowerCase()==='s') skip(); });
 
   // numeric-only
   [elAns1,elP1,elP2].forEach(inp=>{
     inp.addEventListener('input',()=>inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''));
   });
 
-  // preload first images for instant flash
+  // preload overlays
   fxGoodImg.src=GOOD_IMGS[0]; fxBadImg.src=BAD_IMGS[0];
 
   // init
