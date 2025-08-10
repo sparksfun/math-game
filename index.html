@@ -76,6 +76,15 @@
   @media (max-width:700px){
     .controls{grid-template-columns:1fr;}
   }
+  /* === Full-width overrides === */
+body { place-items: start stretch; }
+.wrap { width: 100%; margin: 28px 0 56px; }
+.controls { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+.answer-rows { width: 100%; }
+.row { grid-template-columns: auto 1fr auto; }
+.problem, .card { width: 100%; }
+
 </style>
 </head>
 <body>
