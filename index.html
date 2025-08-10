@@ -30,7 +30,7 @@
   .btn:hover{filter:brightness(1.08);border-color:#3a4381} .btn:active{transform:translateY(1px) scale(.997)}
   .btn.ghost{background:#0e1330;color:var(--muted)} .btn.good{background:linear-gradient(180deg,#16553f,#103c2d);border-color:#1f6b4f;color:#d3ffe9}
 
-  .grid {display: grid; grid-template-columns: 2fr 1fr; /* or whatever ratio fits your content */ gap: 16px; align-items: stretch; }
+  .grid {display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: stretch; }
   .card{background:var(--panel);border:1px solid #262b4a;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
   .problem{display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
   .formula{font-size:clamp(36px,6vw,64px);font-weight:800;letter-spacing:1px}
@@ -76,22 +76,29 @@
   @media (max-width:700px){
     .controls{grid-template-columns:1fr;}
   }
-  /* === Full-width overrides === */
-body { place-items: start stretch; }
-.wrap { width: 100%; margin: 28px 0 56px; }
-.controls { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-.grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
-.answer-rows { width: 100%; }
-.row { grid-template-columns: auto 1fr auto; }
-.problem, .card { width: 100%; }
-/* === Avatar slot fix === */
-.namebox {
-  grid-template-columns: 40px 1fr; /* always reserve space for avatar */
-}
-.name-avatar {
-  display: block;                  /* ensure it's a block element */
-}
 
+  /* === Full-width overrides === */
+  body { place-items: start stretch; }
+  .wrap { width: 100%; margin: 28px 0 56px; }
+  .controls { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+  .answer-rows { width: 100%; }
+  .row { grid-template-columns: auto 1fr auto; }
+  .problem, .card { width: 100%; }
+
+  /* === Avatar slot fix === */
+  .namebox { grid-template-columns: 40px 1fr; }
+  .name-avatar { display: block; }
+
+  /* === Final result modal === */
+  .final-overlay{position:fixed;inset:0;background:rgba(5,8,20,.88);backdrop-filter:blur(6px);
+    display:grid;place-items:center;z-index:1100;opacity:0;pointer-events:none;transition:opacity .2s ease}
+  .final-overlay.show{opacity:1;pointer-events:auto}
+  .final-card{background:var(--panel);border:1px solid #2b3155;border-radius:20px;padding:30px 28px;
+    display:grid;gap:14px;place-items:center;box-shadow:0 24px 64px rgba(0,0,0,.5);max-width:min(90vw,780px)}
+  .final-card h2{margin:0;font-size:clamp(18px,2.6vw,26px);color:var(--muted)}
+  .final-score{font-weight:900;letter-spacing:.3px;text-align:center;
+    font-size:clamp(28px,4.8vw,56px);line-height:1.15}
 </style>
 </head>
 <body>
@@ -146,11 +153,11 @@ body { place-items: start stretch; }
         <label>Names</label>
         <div class="names-row">
           <div class="namebox">
-           <img id="nameAvatarP1" class="name-avatar" src="players/p1.png" alt="P1" onerror="this.style.visibility='hidden'">
+            <img id="nameAvatarP1" class="name-avatar" src="players/p1.png" alt="P1" onerror="this.style.visibility='hidden'">
             <input id="nameP1" type="text" placeholder="Player 1" value="Player 1" />
           </div>
           <div class="namebox">
-           <img id="nameAvatarP2" class="name-avatar" src="players/p2.png" alt="P2" onerror="this.style.visibility='hidden'">
+            <img id="nameAvatarP2" class="name-avatar" src="players/p2.png" alt="P2" onerror="this.style.visibility='hidden'">
             <input id="nameP2" type="text" placeholder="Player 2" value="Player 2" />
           </div>
         </div>
@@ -252,6 +259,15 @@ body { place-items: start stretch; }
     </div>
   </div>
 
+  <!-- Final Result overlay -->
+  <div id="finalOverlay" class="final-overlay" aria-hidden="true">
+    <div id="finalCard" class="final-card">
+      <h2>Session complete</h2>
+      <div id="finalScore" class="final-score">—</div>
+      <button id="finalClose" class="btn">Close ✕</button>
+    </div>
+  </div>
+
   <!-- Audio elements -->
   <audio id="bgm" src="sounds/bgm.mp3" loop preload="auto"></audio>
   <audio id="sndCorrect" src="sounds/correct.mp3" preload="auto"></audio>
@@ -287,8 +303,16 @@ body { place-items: start stretch; }
   // Turn overlay
   var overlay=$('#turnOverlay'), overlayText=$('#turnText'), overlayAvatar=$('#turnAvatar'), btnBeginTurn=$('#btnBeginTurn');
 
+  // Final overlay
+  var finalOv = $('#finalOverlay'), finalCard = $('#finalCard');
+  var finalScore = $('#finalScore'), finalClose = $('#finalClose');
+  function showFinal(text){ finalScore.textContent=text; finalOv.classList.add('show'); finalOv.setAttribute('aria-hidden','false'); }
+  function hideFinal(){ finalOv.classList.remove('show'); finalOv.setAttribute('aria-hidden','true'); }
+  finalClose.addEventListener('click', hideFinal);
+  finalOv.addEventListener('click', function(e){ if(e.target===finalOv) hideFinal(); });
+  window.addEventListener('keydown', function(e){ if(e.key==='Escape') hideFinal(); });
+
   // ===== State =====
-  // Try multiple filenames you might have uploaded
   var GOOD_CANDIDATES=["images/Macky-Correct-2.jpg","images/IMG-20250628-WA0014[1].png","images/correct.png","images/correct1.webp"];
   var BAD_CANDIDATES =["images/Macky-Incorrect-1.png","images/wrong.png","images/wrong1.webp"];
   var GOOD_IMGS=[], BAD_IMGS=[];
@@ -328,7 +352,7 @@ body { place-items: start stretch; }
   elMusicOn.addEventListener('change',updateMusic);
   elMusicVol.addEventListener('input',updateMusic);
 
-  // ===== Sound FX (tick via WebAudio; correct/wrong via audio files) =====
+  // ===== Sound FX =====
   var AC=(window.AudioContext||window.webkitAudioContext)? new (window.AudioContext||window.webkitAudioContext)() : null;
   var master=AC? AC.createGain():null; if(master){ master.connect(AC.destination); master.gain.value=+elVol.value; }
   function soundOn(){ return elSoundOn.value==="1"; }
@@ -432,7 +456,7 @@ body { place-items: start stretch; }
     hideTurnOverlay();
     if(elMusicOn.value==="1"){ try{ BGM.volume=+elMusicVol.value; BGM.play(); }catch(e){} }
     setRowVis();
-    next(true); // first question of the turn
+    next(true);
   });
   window.addEventListener('keydown', function(e){
     if(awaitingTurnStart && (e.key===' ' || e.key==='Enter')){ e.preventDefault(); btnBeginTurn.click(); }
@@ -494,83 +518,87 @@ body { place-items: start stretch; }
 
   function finish(){
     stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
-    var verdict='Session complete — ';
+
+    var scoreLine = '';
     if(elPlayers.value==='2'){
       var p1Score=p1.ok, p2Score=p2.ok;
-      if(p1Score>p2Score) verdict+=(elNameP1.value||'Player 1')+' wins!';
-      else if(p2Score>p1Score) verdict+=(elNameP2.value||'Player 2')+' wins!';
+      var n1=(elNameP1.value||'Player 1'), n2=(elNameP2.value||'Player 2');
+      var winner;
+      if(p1Score>p2Score) winner = n1 + ' wins!';
+      else if(p2Score>p1Score) winner = n2 + ' wins!';
       else {
         var t1=p1.no,t2=p2.no;
-        verdict+=(t1<t2?(elNameP1.value||'Player 1')+' wins by fewer mistakes!':
-                  t2<t1?(elNameP2.value||'Player 2')+' wins by fewer mistakes!':'It’s a tie!');
+        winner = (t1<t2 ? (n1+' wins by fewer mistakes!') :
+                 (t2<t1 ? (n2+' wins by fewer mistakes!') : 'It’s a tie!'));
       }
-      verdict+='  ('+(elNameP1.value||'P1')+' '+p1.ok+'/'+p1.no+' vs '+(elNameP2.value||'P2')+' '+p2.ok+'/'+p2.no+')';
+      scoreLine = winner + ' ('+n1+' '+p1.ok+'/'+p1.no+' vs '+n2+' '+p2.ok+'/'+p2.no+')';
     }else{
-      var acc=accuracy(); verdict+=good+' correct, '+bad+' wrong, accuracy '+(acc==='—'?'—':acc+'%');
+      var acc=accuracy();
+      scoreLine = good+' correct, '+bad+' wrong, accuracy '+(acc==='—'?'—':acc+'%');
     }
-    elFeedback.textContent=verdict;
-    elFeedback.className='feedback '+(good>=bad?'ok':'no');
-    try{ if(BGM) { BGM.pause(); } }catch(e){}
+
+    // small footer text remains
+    elFeedback.textContent='Session complete — ' + scoreLine;
+    elFeedback.className='feedback ' + (good>=bad?'ok':'no');
+
+    try{ if(BGM){ BGM.pause(); } }catch(e){}
+
+    // Big modal
+    showFinal(scoreLine);
   }
 
   // ===== Answer submit =====
   function consumeRound(){ if(elPlayers.value==='2'){ (turn==='p1'?p1:p2).played++; } }
   function leadText(){ var d=p1.ok-p2.ok; return d===0?'Tied':(d>0?(elNameP1.value||'P1')+' +'+d:(elNameP2.value||'P2')+' +'+(-d)); }
 
- function handleSubmit(val, who){
-  if(awaitingTurnStart) return;
-  if(!running || !current || val==='') return;
+  function handleSubmit(val, who){
+    if(awaitingTurnStart) return;
+    if(!running || !current || val==='') return;
 
-  // stop countdown immediately on any submission
-  stopTimer();
+    stopTimer();
 
-  var num = Number(val);
-  var correct = (num === current.answer);
+    var num = Number(val);
+    var correct = (num === current.answer);
 
-  if (correct) {
-    good++; streak++; bestStreak = Math.max(bestStreak, streak);
-    if (who === 'p1'){ p1.ok++; elP1Score.textContent = p1.ok + ' / ' + p1.no; elLead.textContent = leadText(); }
-    if (who === 'p2'){ p2.ok++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
-    elFeedback.textContent = (who==='solo' ? 'Correct!' : (activeName() + ' scores!'));
-    elFeedback.className = 'feedback ok';
-    elLast.textContent = '✓'; elLast.style.color = 'var(--good)';
-    sfx.correct(); flash(fxGood, GOOD_IMGS, 400);
+    if (correct) {
+      good++; streak++; bestStreak = Math.max(bestStreak, streak);
+      if (who === 'p1'){ p1.ok++; elP1Score.textContent = p1.ok + ' / ' + p1.no; elLead.textContent = leadText(); }
+      if (who === 'p2'){ p2.ok++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
+      elFeedback.textContent = (who==='solo' ? 'Correct!' : (activeName() + ' scores!'));
+      elFeedback.className = 'feedback ok';
+      elLast.textContent = '✓'; elLast.style.color = 'var(--good)';
+      sfx.correct(); flash(fxGood, GOOD_IMGS, 400);
+
+      consumeRound();
+      updateStats();
+      setTimeout(function(){ next(); }, 180);
+      return;
+    }
+
+    // WRONG → mark + advance
+    bad++; streak = 0;
+    if (who === 'p1'){ p1.no++; elP1Score.textContent = p1.ok + ' / ' + p1.no; elLead.textContent = leadText(); }
+    if (who === 'p2'){ p2.no++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
+    elFeedback.textContent = '✗ Wrong';
+    elFeedback.className = 'feedback no';
+    elLast.textContent = '✗'; elLast.style.color = 'var(--bad)';
+    sfx.wrong(); flash(fxBad, BAD_IMGS, 450);
 
     consumeRound();
     updateStats();
-
-    // short pause so the flash is visible
-    setTimeout(function(){ next(); }, 180);
-    return;
+    setTimeout(function(){ next(); }, 200);
   }
 
-  // WRONG → mark + advance
-  bad++; streak = 0;
-  if (who === 'p1'){ p1.no++; elP1Score.textContent = p1.ok + ' / ' + p1.no; elLead.textContent = leadText(); }
-  if (who === 'p2'){ p2.no++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
-  elFeedback.textContent = '✗ Wrong';
-  elFeedback.className = 'feedback no';
-  elLast.textContent = '✗'; elLast.style.color = 'var(--bad)';
-  sfx.wrong(); flash(fxBad, BAD_IMGS, 450);
-
-  consumeRound();
-  updateStats();
-
-  // advance immediately (small delay to show red flash)
-  setTimeout(function(){ next(); }, 200);
-}
-
-function skip(){
-  if(awaitingTurnStart || !running) return;
-  stopTimer();                 // stop countdown immediately
-  bad++; streak = 0;
-  elLast.textContent = '⏭'; elLast.style.color = 'var(--warn)';
-  updateStats();
-  flash(fxBad, BAD_IMGS, 300);
-  consumeRound();
-  next();
-}
-
+  function skip(){
+    if(awaitingTurnStart || !running) return;
+    stopTimer();
+    bad++; streak = 0;
+    elLast.textContent = '⏭'; elLast.style.color = 'var(--warn)';
+    updateStats();
+    flash(fxBad, BAD_IMGS, 300);
+    consumeRound();
+    next();
+  }
 
   // ===== Timer =====
   function startTimerIfNeeded(){
@@ -619,7 +647,6 @@ function skip(){
 
   // init
   updateMusic();
-  // set initial overlay images to avoid empty src flashes
   fxGoodImg.src = GOOD_CANDIDATES[0];
   fxBadImg.src  = BAD_CANDIDATES[0];
 
