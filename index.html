@@ -438,29 +438,38 @@
     try{ BGM.pause(); BGM.currentTime=0; }catch(e){}
   }
 
-  function next(initial){
-    if(awaitingTurnStart) return;
-    stopTimer();
+ // Replace your current next() with this version.
+// Fix: in single-player, stop after selected number of rounds.
 
-    if(elPlayers.value==='2' && !initial){
-      if(sessionFinishedFor(turn)){
-        if(everyonePlayed()) return finish();
-        turn = (turn==='p1') ? 'p2' : 'p1';
-        updateTurnBanner();
-        showTurnOverlay();
-        return;
-      }
+function next(initial){
+  if(awaitingTurnStart) return;
+  stopTimer();
+
+  // --- NEW: end-of-session checks ---
+  if (elPlayers.value === '2') {
+    if (!initial && sessionFinishedFor(turn)) {
+      if (everyonePlayed()) return finish();
+      turn = (turn === 'p1') ? 'p2' : 'p1';
+      updateTurnBanner();
+      showTurnOverlay();
+      return;
     }
-
-    qCount++;
-    var mode=pickOp(elMode.value), L=+elDiff.value;
-    current=ops[mode].gen(L);
-    elFormula.textContent=current.text+' = ?';
-    elQIndex.textContent=qCount;
-    [elAns1,elP1,elP2].forEach(function(i){i.value='';});
-    elFeedback.textContent=' '; elFeedback.className='feedback';
-    startTimerIfNeeded();
+  } else {
+    // single player: qCount == number of questions already shown
+    var maxQ = parseInt(elRounds.value, 10);
+    if (!initial && qCount >= maxQ) return finish();
   }
+  // --- end NEW ---
+
+  qCount++;
+  var mode=pickOp(elMode.value), L=+elDiff.value;
+  current=ops[mode].gen(L);
+  elFormula.textContent=current.text+' = ?';
+  elQIndex.textContent=qCount;
+  [elAns1,elP1,elP2].forEach(function(i){i.value='';});
+  elFeedback.textContent=' '; elFeedback.className='feedback';
+  startTimerIfNeeded();
+}
 
   function finish(){
     stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
