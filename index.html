@@ -19,9 +19,11 @@
   .range-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
   .chip{background:var(--chip);border:1px solid #2b3155;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
 
-  /* Names: full-width row */
+  /* Names row full width, with inline avatar previews */
   .group.names{grid-column:1 / -1}
-  .group.names .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .names-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .namebox{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px}
+  .name-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid #2b3155}
   #nameP1,#nameP2{min-width:220px;font-size:16px}
 
   .btn{appearance:none;border:1px solid #2c335a;background:linear-gradient(180deg,#1e2550,#141a3b);color:#fff;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;letter-spacing:.2px;transition:transform .03s ease,filter .15s ease,border-color .15s ease}
@@ -35,14 +37,13 @@
   .turn{font-weight:700;color:#a7b4ff}
 
   .answer-rows{display:grid;gap:10px;width:min(560px,96%)}
-  .row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+  .row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
   .row input{padding:12px 14px;border-radius:12px;border:1px solid #2c335a;outline:none;background:#0e1330;color:#fff;font-size:clamp(18px,2.2vw,22px);text-align:center;letter-spacing:.5px}
   .p1{border-left:4px solid #6bd3ff;padding-left:8px;border-radius:10px} .p2{border-left:4px solid #ffb86b;padding-left:8px;border-radius:10px}
   .hidden{display:none !important}
 
-  /* Tiny avatar next to active input */
+  /* Active-row avatar */
   .avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid #2b3155}
-  .row .avatar{justify-self:start}
 
   .feedback{height:28px;font-weight:700;letter-spacing:.3px}
   .feedback.ok{color:var(--good)} .feedback.no{color:var(--bad)}
@@ -69,6 +70,7 @@
   @media (max-width:1200px){
     .controls{grid-template-columns:repeat(4,minmax(0,1fr));}
     .group.names{grid-column:1 / -1;}
+    .names-row{grid-template-columns:1fr}
   }
   @media (max-width:860px){
     .controls{grid-template-columns:1fr 1fr}
@@ -76,7 +78,6 @@
   }
   @media (max-width:700px){
     .controls{grid-template-columns:1fr;}
-    .group.names .row{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -127,21 +128,18 @@
         </select>
       </div>
 
-      <!-- Music controls -->
-      <div class="group">
-        <label>Music</label>
-        <div class="range-row">
-          <select id="musicOn"><option value="1">On</option><option value="0" selected>Off</option></select>
-          <span class="chip">Vol</span>
-        </div>
-        <input id="musicVol" type="range" min="0" max="1" step="0.01" value="0.35" />
-      </div>
-
+      <!-- Names + avatar previews (use players/ folder) -->
       <div class="group names">
         <label>Names</label>
-        <div class="row">
-          <input id="nameP1" type="text" placeholder="Player 1" value="Player 1" />
-          <input id="nameP2" type="text" placeholder="Player 2" value="Player 2" />
+        <div class="names-row">
+          <div class="namebox">
+            <img id="nameAvatarP1" class="name-avatar" src="players/p1.png" alt="P1" onerror="this.style.display='none'">
+            <input id="nameP1" type="text" placeholder="Player 1" value="Player 1" />
+          </div>
+          <div class="namebox">
+            <img id="nameAvatarP2" class="name-avatar" src="players/p2.png" alt="P2" onerror="this.style.display='none'">
+            <input id="nameP2" type="text" placeholder="Player 2" value="Player 2" />
+          </div>
         </div>
       </div>
 
@@ -156,7 +154,7 @@
 
       <div class="group">
         <label>&nbsp;</label>
-        <span class="chip">P1: Enter • P2: Enter (in their box) • Skip: S • Start turn: Space/Enter</span>
+        <span class="chip">Start turn: Space/Enter • Submit: Enter • Skip: S</span>
       </div>
     </section>
 
@@ -178,12 +176,12 @@
           <!-- multiplayer rows (only active row shown) -->
           <div id="multiRows" class="answer-rows" style="display:none">
             <div class="row" id="rowP1">
-              <img id="avatarP1" class="avatar" alt="">
+              <img id="avatarP1" class="avatar" src="players/p1.png" alt="P1" onerror="this.style.display='none'">
               <input id="answerP1" class="p1" type="text" inputmode="numeric" placeholder="P1…" disabled />
               <button id="btnSubmitP1" class="btn">Submit</button>
             </div>
             <div class="row" id="rowP2">
-              <img id="avatarP2" class="avatar" alt="">
+              <img id="avatarP2" class="avatar" src="players/p2.png" alt="P2" onerror="this.style.display='none'">
               <input id="answerP2" class="p2" type="text" inputmode="numeric" placeholder="P2…" disabled />
               <button id="btnSubmitP2" class="btn">Submit</button>
             </div>
@@ -204,7 +202,7 @@
           <div class="stat"><label>Lead</label><b id="lead">—</b></div>
         </div>
 
-        <footer>Shortcuts: Enter submit • Esc clear • S skip • Space/Enter to start next player</footer>
+        <footer>Shortcuts: Start turn (Space/Enter) • Submit (Enter) • Esc clear • S skip</footer>
       </div>
 
       <div class="card">
@@ -217,7 +215,7 @@
     </section>
   </div>
 
-  <!-- overlays -->
+  <!-- result overlays -->
   <div id="fxGood" class="fx-overlay"><img id="fxGoodImg" alt="Correct"></div>
   <div id="fxBad"  class="fx-overlay"><img id="fxBadImg"  alt="Incorrect"></div>
 
@@ -231,20 +229,15 @@
     </div>
   </div>
 
-  <!-- Background music element (file optional) -->
-  <audio id="bgm" src="audio/bgm.mp3" loop preload="auto"></audio>
-
 <script>
 (() => {
   // ------- DOM -------
-  const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+  const $=s=>document.querySelector(s);
   const elMode=$('#mode'), elDiff=$('#difficulty'), elDiffVal=$('#diffVal');
   const elTimerSec=$('#timerSec'), elTimerVal=$('#timerVal');
   const elRounds=$('#rounds'), elPlayers=$('#players');
   const elNameP1=$('#nameP1'), elNameP2=$('#nameP2');
 
-  // music + sfx
-  const elMusicOn=$('#musicOn'), elMusicVol=$('#musicVol'), BGM=$('#bgm');
   const elSoundOn=$('#soundOn'), elVol=$('#volume');
 
   const elStart=$('#btnStart'), elReset=$('#btnReset');
@@ -253,14 +246,12 @@
   const elP1=$('#answerP1'), elP2=$('#answerP2');
   const elBtnP1=$('#btnSubmitP1'), elBtnP2=$('#btnSubmitP2');
   const rowP1=$('#rowP1'), rowP2=$('#rowP2');
-  const avatarP1=$('#avatarP1'), avatarP2=$('#avatarP2'), soloAvatar=$('#soloAvatar');
 
   const elFormula=$('#formula'), elFeedback=$('#feedback');
   const elStatGood=$('#statGood'), elStatBad=$('#statBad'), elStatAcc=$('#statAcc');
   const elQIndex=$('#qIndex'), elTimer=$('#timer'), elStreak=$('#streak'), elBest=$('#bestStreak'), elLast=$('#lastResult');
   const elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
-  const elLblP1=$('#lblP1'), elLblP2=$('#lblP2');
-  const elTurn=$('#turnBanner');
+  const elLblP1=$('#lblP1'), elLblP2=$('#lblP2'); const elTurn=$('#turnBanner');
 
   const fxGood=$('#fxGood'), fxBad=$('#fxBad'), fxGoodImg=$('#fxGoodImg'), fxBadImg=$('#fxBadImg');
 
@@ -270,8 +261,8 @@
   // ------- State -------
   const GOOD_IMGS=["images/correct1.webp","images/correct2.webp"];
   const BAD_IMGS =["images/wrong1.webp"];
-  const P1_IMG="images/players/p1.webp";
-  const P2_IMG="images/players/p2.webp";
+  const P1_IMG="players/p1.png";
+  const P2_IMG="players/p2.png";
 
   let running=false, current=null, qCount=0;
   let good=0,bad=0,streak=0,bestStreak=0;
@@ -280,24 +271,7 @@
   let turn='p1';
   let awaitingTurnStart=false;
 
-  // ------- Load avatars (non-breaking if missing) -------
-  [ [avatarP1,P1_IMG], [avatarP2,P2_IMG], [soloAvatar,P1_IMG] ].forEach(([img,src])=>{
-    img.src=src; img.onerror=()=>img.classList.add('hidden');
-  });
-
-  // ------- Music -------
-  function updateMusic(){
-    BGM.volume=+elMusicVol.value;
-    if(elMusicOn.value==="1"){
-      BGM.play().catch(()=>{/* user gesture may be required; overlay button will also trigger play */});
-    }else{
-      BGM.pause(); BGM.currentTime=0;
-    }
-  }
-  elMusicOn.addEventListener('change',updateMusic);
-  elMusicVol.addEventListener('input',updateMusic);
-
-  // ------- Sound FX (WebAudio) -------
+  // ------- FX Sound (WebAudio) -------
   const AC=new (window.AudioContext||window.webkitAudioContext)();
   const master=AC.createGain(); master.connect(AC.destination); master.gain.value=+elVol.value;
   const soundOn=()=>elSoundOn.value==="1";
@@ -344,11 +318,12 @@
   }
   function activeName(){ return turn==='p1' ? (elNameP1.value||'Player 1') : (elNameP2.value||'Player 2'); }
   function updateTurnBanner(){ elTurn.textContent = elPlayers.value==='2' ? `Turn: ${activeName()}` : '—'; }
-  function setAvatarRowVisibility(){
+  function setRowVis(){
     const p1Active = (turn==='p1');
     rowP1.classList.toggle('hidden',!p1Active);
     rowP2.classList.toggle('hidden', p1Active);
     elP1.disabled=!p1Active; elP2.disabled=p1Active;
+    (p1Active?elP1:elP2).focus();
   }
 
   // ------- UI mode -------
@@ -362,30 +337,29 @@
     elSingle.style.display = two ? 'none' : 'grid';
     elMulti.style.display  = two ? 'grid' : 'none';
     updateTurnBanner();
-    if(two) setAvatarRowVisibility();
+    if(two) setRowVis();
   }
   elPlayers.addEventListener('change',uiMode);
   elNameP1.addEventListener('input',uiMode);
   elNameP2.addEventListener('input',uiMode);
 
-  // ------- Turn overlay -------
+  // ------- Turn overlay (hand-off) -------
   function showTurnOverlay(){
     if(elPlayers.value!=='2') return;
     overlayText.textContent = `Next up: ${activeName()}`;
-    overlayAvatar.src = (turn==='p1'?P1_IMG:P2_IMG);
+    overlayAvatar.src = (turn==='p1')?P1_IMG:P2_IMG;
+    if(!overlayAvatar.complete || overlayAvatar.naturalWidth===0){ overlayAvatar.style.display='none'; } else { overlayAvatar.style.display='block'; }
     overlay.classList.add('show');
     awaitingTurnStart = true;
   }
   function hideTurnOverlay(){
     overlay.classList.remove('show');
     awaitingTurnStart = false;
-    // start music if user interaction was required
-    if(elMusicOn.value==="1") { BGM.play().catch(()=>{}); }
   }
   btnBeginTurn.addEventListener('click',()=>{
     hideTurnOverlay();
-    enableInputsForTurn();
-    next(true); // generate first question of this turn
+    setRowVis();
+    next(true); // first question of this turn
   });
   window.addEventListener('keydown',e=>{
     if(awaitingTurnStart && (e.key===' ' || e.key==='Enter')){ e.preventDefault(); btnBeginTurn.click(); }
@@ -395,15 +369,15 @@
   let everyonePlayed = () => (p1.played>=parseInt(elRounds.value,10) && p2.played>=parseInt(elRounds.value,10));
   function start(){
     if(running) return;
-    AC.resume?.(); updateMusic();
+    AC.resume?.();
     running=true; qCount=0; good=bad=0; streak=bestStreak=0;
     p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     elStart.textContent='Running…'; elStart.disabled=true;
 
-    // Randomize who starts; show overlay instead of instant jump
+    // Randomize who starts; show overlay
     turn = Math.random()<0.5 ? 'p1' : 'p2';
-    setAvatarRowVisibility(); updateTurnBanner();
-    showTurnOverlay(); // Wait for Start turn
+    setRowVis(); updateTurnBanner();
+    showTurnOverlay();
   }
   function reset(){
     stopTimer(); running=false; current=null; qCount=good=bad=streak=bestStreak=0;
@@ -412,35 +386,23 @@
     [elAns1,elP1,elP2].forEach(i=>{i.value=''; i.disabled=true;});
     elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
     elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
-    overlay.classList.remove('show'); awaitingTurnStart=false; BGM.pause();
+    overlay.classList.remove('show'); awaitingTurnStart=false;
     updateStats(); updateTurnBanner();
     elSingle.style.display='grid'; elMulti.style.display='none';
-  }
-
-  function enableInputsForTurn(){
-    const two = elPlayers.value==='2';
-    if (!two) {
-      elAns1.disabled=false;
-      elP1.disabled = elP2.disabled = true;
-      return;
-    }
-    setAvatarRowVisibility();
-    (turn==='p1'?elP1:elP2).focus();
   }
 
   function sessionFinishedFor(id){ return (id==='p1'?p1:p2).played >= parseInt(elRounds.value,10); }
 
   function next(initial=false){
-    if(awaitingTurnStart) return; // gated by overlay
+    if(awaitingTurnStart) return;
     stopTimer();
 
     if(elPlayers.value==='2' && !initial){
-      // if the current player exhausted rounds, switch and show overlay
       if(sessionFinishedFor(turn)){
         if(everyonePlayed()) return finish();
         turn = (turn==='p1') ? 'p2' : 'p1';
-        updateTurnBanner(); setAvatarRowVisibility();
-        showTurnOverlay(); // wait for human to get to keyboard
+        updateTurnBanner();
+        showTurnOverlay(); // wait for start
         return;
       }
     }
@@ -516,7 +478,6 @@
     tick=setInterval(()=>{
       remaining--;
       if(remaining>0){ sfx.tick(); renderTimer(); return; }
-      // timeout
       bad++; streak=0; updateStats();
       elFeedback.textContent='Time out — next!'; elFeedback.className='feedback no';
       elLast.textContent='⏲'; elLast.style.color='var(--bad)';
