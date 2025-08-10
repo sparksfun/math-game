@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Math Sprint — Interactive Practice</title>
+<style>
+  :root {
+    --bg: #0f1220;
+    --panel: #161a2e;
+    --ink: #e9ecf1;
+    --muted: #aab3c5;
+    --accent: #7c9cff;
+    --good: #38d39f;
+    --bad: #ff6b6b;
+    --warn: #ffb020;
+    --chip: #232843;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+    background: radial-gradient(1200px 800px at 10% -10%, #1b2142 0%, var(--bg) 55%);
+    color: var(--ink); display: grid; place-items: start center;
+  }
+  .wrap { width: min(1000px, 96vw); margin: 28px 0 56px; }
+  header { display: grid; gap: 12px; grid-template-columns: 1fr auto; align-items: start; margin-bottom: 16px; }
+  h1 { font-weight: 800; margin: 0; letter-spacing: .2px; font-size: clamp(20px, 2.8vw, 28px); }
+  .controls {
+    display: grid; gap: 10px; padding: 14px; background: color-mix(in oklab, var(--panel), #000 6%);
+    border: 1px solid #262b4a; border-radius: 14px;
+    grid-template-columns: repeat(6, minmax(0,1fr)); align-items: end;
+  }
+  .controls .group { display: grid; gap: 6px; }
+  label { font-size: 12px; color: var(--muted); letter-spacing: .2px; }
+  select, input[type="number"], input[type="range"] {
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #2c335a; background: #0e1330; color: var(--ink); outline: none;
+  }
+  .range-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+  .chip { background: var(--chip); border: 1px solid #2b3155; border-radius: 999px; padding: 6px 10px; font-size: 12px; color: var(--muted); }
+  .btn { appearance: none; border: 1px solid #2c335a; background: linear-gradient(180deg, #1e2550, #141a3b);
+    color: #fff; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: 700; letter-spacing: .2px;
+    transition: transform .03s ease, filter .15s ease, border-color .15s ease; }
+  .btn:hover { filter: brightness(1.08); border-color: #3a4381; }
+  .btn:active { transform: translateY(1px) scale(.997); }
+  .btn.ghost { background: #0e1330; color: var(--muted); }
+  .btn.warn { background: linear-gradient(180deg, #4a2b10, #341f0b); border-color: #583110; color: #ffd9a3; }
+  .btn.good { background: linear-gradient(180deg, #16553f, #103c2d); border-color: #1f6b4f; color: #d3ffe9; }
+  .grid { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; align-items: stretch; }
+  .card { background: var(--panel); border: 1px solid #262b4a; border-radius: 16px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  .problem {
+    display: grid; justify-items: center; align-content: center; gap: 16px; height: 280px;
+    background: radial-gradient(600px 340px at 50% -30%, #1a2150 0%, #121633 60%, #0f1329 100%);
+    border-radius: 12px; border: 1px solid #262b4a;
+  }
+  .formula { font-size: clamp(36px, 6vw, 64px); font-weight: 800; letter-spacing: 1px; }
+  .answer-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; width: min(520px, 92%); }
+  .answer-row input[type="text"] {
+    padding: 14px 16px; border-radius: 12px; border: 1px solid #2c335a; outline: none; background: #0e1330; color: #fff;
+    font-size: clamp(18px, 2.2vw, 22px); text-align: center; letter-spacing: .5px;
+  }
+  .feedback { height: 28px; font-weight: 700; letter-spacing: .3px; }
+  .feedback.ok { color: var(--good); } .feedback.no { color: var(--bad); }
+  .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 12px; }
+  .stat { background: #0e1330; border: 1px solid #2b3155; border-radius: 12px; padding: 10px 12px; display: grid; gap: 4px; }
+  .stat b { font-size: 22px; }
+  .timer { display: grid; place-items: center; height: 80px; background: #0e1330; border: 1px solid #2b3155; border-radius: 12px;
+    font-weight: 800; letter-spacing: .5px; font-size: 28px; }
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .legend .chip.good { color: #c8ffe9; border-color: #235b46; }
+  .legend .chip.bad  { color: #ffd6d6; border-color: #6b2b2b; }
+  footer { margin-top: 14px; color: var(--muted); font-size: 12px; display: flex; gap: 12px; align-items: center; }
+  kbd { background: #0c0f21; border: 1px solid #2b3155; padding: 2px 6px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  @media (max-width: 860px) { .controls { grid-template-columns: 1fr 1fr; } .grid { grid-template-columns: 1fr; } }
+
+  /* Overlay FX */
+  .fx-overlay {
+    position: fixed; inset: 0; display: grid; place-items: center;
+    pointer-events: none; opacity: 0; transition: opacity .25s ease; z-index: 999;
+  }
+  .fx-overlay.show { opacity: 1; }
+  .fx-overlay img {
+    max-width: min(60vmin, 520px); max-height: 70vh; border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.55); border: 2px solid #2b3155;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Math Sprint</h1>
+      <div style="display:flex; gap:10px;">
+        <button id="btnStart" class="btn good">Start ▶</button>
+        <button id="btnReset" class="btn ghost">Reset ⟲</button>
+      </div>
+    </header>
+
+    <section class="controls">
+      <div class="group">
+        <label for="mode">Operation</label>
+        <select id="mode">
+          <option value="add">Add ( + )</option>
+          <option value="sub">Subtract ( − )</option>
+          <option value="mul">Multiply ( × )</option>
+          <option value="div">Divide ( ÷ )</option>
+          <option value="mix" selected>Mix</option>
+        </select>
+      </div>
+      <div class="group">
+        <label for="difficulty">Difficulty (1–10)</label>
+        <div class="range-row">
+          <input id="difficulty" type="range" min="1" max="10" step="1" value="3" />
+          <span id="diffVal" class="chip">3</span>
+        </div>
+      </div>
+      <div class="group">
+        <label for="timerSec">Timer / question (0 = off)</label>
+        <div class="range-row">
+          <input id="timerSec" type="range" min="0" max="60" step="1" value="10" />
+          <span id="timerVal" class="chip">10s</span>
+        </div>
+      </div>
+      <div class="group">
+        <label for="maxQs">Session length</label>
+        <select id="maxQs">
+          <option>10</option><option selected>20</option><option>30</option><option>50</option><option>∞</option>
+        </select>
+      </div>
+      <div class="group">
+        <label>&nbsp;</label>
+        <div class="legend">
+          <span class="chip good">Correct +1</span>
+          <span class="chip bad">Wrong +1 (stays on Q)</span>
+        </div>
+      </div>
+      <div class="group" style="text-align:right">
+        <label>&nbsp;</label>
+        <button id="btnSkip" class="btn warn">Skip (counts wrong)</button>
+      </div>
+    </section>
+
+    <section class="grid" style="margin-top:16px;">
+      <div class="card">
+        <div class="problem" id="problem">
+          <div id="formula" class="formula">—</div>
+          <div class="answer-row">
+            <input id="answer" type="text" inputmode="numeric" autocomplete="off" placeholder="Type answer… (Enter)" disabled />
+            <button id="btnSubmit" class="btn">Submit ⏎</button>
+          </div>
+          <div id="feedback" class="feedback">&nbsp;</div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><label>Correct</label><b id="statGood">0</b></div>
+          <div class="stat"><label>Incorrect</label><b id="statBad">0</b></div>
+          <div class="stat"><label>Accuracy</label><b id="statAcc">—</b></div>
+        </div>
+        <footer>
+          Shortcuts: <kbd>Enter</kbd> submit, <kbd>Esc</kbd> clear, <kbd>S</kbd> skip, <kbd>N</kbd> next (after correct)
+        </footer>
+      </div>
+
+      <div class="card">
+        <div class="timer" id="timer">Timer: off</div>
+        <div class="stat" style="margin-top:12px;">
+          <label>Question</label><b id="qIndex">0</b>
+        </div>
+        <div class="stat" style="margin-top:8px;">
+          <label>Streak</label><b id="streak">0</b>
+        </div>
+        <div class="stat" style="margin-top:8px;">
+          <label>Best streak</label><b id="bestStreak">0</b>
+        </div>
+        <div class="stat" style="margin-top:8px;">
+          <label>Last result</label><b id="lastResult">—</b>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Overlay images -->
+  <div id="fxGood" class="fx-overlay"><img id="fxGoodImg" alt="Correct"></div>
+  <div id="fxBad"  class="fx-overlay"><img id="fxBadImg"  alt="Incorrect"></div>
+
+<script>
+(() => {
+  const $ = sel => document.querySelector(sel);
+  const clamp = (n, a, b) => Math.min(Math.max(n, a), b);
+
+  let running = false;
+  let current = null;
+  let qCount = 0;
+  let good = 0, bad = 0;
+  let streak = 0, bestStreak = 0;
+  let tick = null;
+  let remaining = 0;
+
+  const elMode = $('#mode');
+  const elDiff = $('#difficulty');
+  const elDiffVal = $('#diffVal');
+  const elTimerSec = $('#timerSec');
+  const elTimerVal = $('#timerVal');
+  const elMaxQs = $('#maxQs');
+  const elFormula = $('#formula');
+  const elAnswer  = $('#answer');
+  const elSubmit  = $('#btnSubmit');
+  const elStart   = $('#btnStart');
+  const elReset   = $('#btnReset');
+  const elSkip    = $('#btnSkip');
+  const elFeedback = $('#feedback');
+  const elStatGood = $('#statGood');
+  const elStatBad  = $('#statBad');
+  const elStatAcc  = $('#statAcc');
+  const elQIndex   = $('#qIndex');
+  const elTimer    = $('#timer');
+  const elStreak   = $('#streak');
+  const elBest     = $('#bestStreak');
+  const elLast     = $('#lastResult');
+
+  // Image lists using normal files
+  const GOOD_IMGS = [
+    "images/correct1.webp",
+    "images/correct2.webp"
+  ];
+  const BAD_IMGS = [
+    "images/wrong1.webp"
+  ];
+
+  const fxGood = document.getElementById('fxGood');
+  const fxBad  = document.getElementById('fxBad');
+  const fxGoodImg = document.getElementById('fxGoodImg');
+  const fxBadImg  = document.getElementById('fxBadImg');
+
+  function flash(el, imgList, hold=600) {
+    const pick = imgList[Math.floor(Math.random()*imgList.length)];
+    if (el === fxGood) fxGoodImg.src = pick; else fxBadImg.src = pick;
+    el.classList.add('show');
+    setTimeout(()=> el.classList.remove('show'), hold);
+  }
+
+  function rangeFor(op, level) {
+    const L = clamp(+level, 1, 10);
+    switch (op) {
+      case 'add':
+      case 'sub': {
+        const max = [9,12,20,30,40,60,90,120,180,250][L-1];
+        return { min: 0, max };
+      }
+      case 'mul': {
+        const max = [5,6,8,9,10,12,15,18,20,25][L-1];
+        return { min: 0, max };
+      }
+      case 'div': {
+        const max = [5,6,8,9,10,12,15,18,20,25][L-1];
+        return { min: 1, max };
+      }
+      default: {
+        const max = [9,12,20,30,40,60,90,120,180,250][L-1];
+        return { min: 0, max };
+      }
+    }
+  }
+  const ops = {
+    add: { sym: '+', calc: (a,b)=>a+b, gen: (L)=>{
+      const r = rangeFor('add', L);
+      const a = rnd(r.min, r.max), b = rnd(r.min, r.max);
+      return { a, b, op:'add', answer: a+b, text:`${a} + ${b}` };
+    }},
+    sub: { sym: '−', calc: (a,b)=>a-b, gen: (L)=>{
+      const r = rangeFor('sub', L);
+      let a = rnd(r.min, r.max), b = rnd(r.min, r.max);
+      if (b > a) [a,b] = [b,a];
+      return { a, b, op:'sub', answer: a-b, text:`${a} − ${b}` };
+    }},
+    mul: { sym: '×', calc: (a,b)=>a*b, gen: (L)=>{
+      const r = rangeFor('mul', L);
+      const a = rnd(r.min, r.max), b = rnd(r.min, r.max);
+      return { a, b, op:'mul', answer: a*b, text:`${a} × ${b}` };
+    }},
+    div: { sym: '÷', calc: (a,b)=>a/b, gen: (L)=>{
+      const r = rangeFor('div', L);
+      const b = rnd(r.min, r.max);
+      const q = rnd(r.min, r.max);
+      const a = b * q; // guarantees integer result
+      return { a, b, op:'div', answer: q, text:`${a} ÷ ${b}` };
+    }},
+  };
+  function rnd(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function pickOp(mode) { return mode !== 'mix' ? mode : ['add','sub','mul','div'][rnd(0,3)]; }
+
+  function start() {
+    if (running) return;
+    running = true;
+    qCount = 0; good = 0; bad = 0; streak = 0; bestStreak = 0;
+    elStart.textContent = 'Running…';
+    elStart.disabled = true;
+    elAnswer.disabled = false;
+    nextQuestion(true);
+    elAnswer.focus();
+    updateStats();
+  }
+  function reset() {
+    stopTimer();
+    running = false;
+    current = null;
+    qCount = good = bad = streak = bestStreak = 0;
+    elStart.textContent = 'Start ▶';
+    elStart.disabled = false;
+    elAnswer.value = '';
+    elAnswer.disabled = true;
+    elFormula.textContent = '—';
+    elFeedback.textContent = ' ';
+    elFeedback.className = 'feedback';
+    elTimer.textContent = 'Timer: off';
+    updateStats();
+  }
+  function sessionLimitReached() {
+    const max = elMaxQs.value === '∞' ? Infinity : parseInt(elMaxQs.value,10);
+    return (good + bad) >= max;
+  }
+  function nextQuestion(initial=false) {
+    stopTimer();
+    if (!initial && sessionLimitReached()) {
+      finishSession();
+      return;
+    }
+    qCount++;
+    const mode = pickOp(elMode.value);
+    const L = +elDiff.value;
+    current = ops[mode].gen(L);
+    elFormula.textContent = current.text + ' = ?';
+    elQIndex.textContent = qCount;
+    elAnswer.value = '';
+    elFeedback.textContent = ' ';
+    elFeedback.className = 'feedback';
+    startTimerIfNeeded();
+  }
+  function finishSession() {
+    stopTimer();
+    running = false;
+    elStart.textContent = 'Start ▶';
+    elStart.disabled = false;
+    elAnswer.disabled = true;
+    const acc = accuracy();
+    elFeedback.textContent = `Session complete — ${good} correct, ${bad} wrong, accuracy ${acc === '—' ? '—' : acc}%`;
+    elFeedback.className = 'feedback ' + (good >= bad ? 'ok' : 'no');
+  }
+
+  function submit() {
+    if (!running || !current) return;
+    const guess = elAnswer.value.trim();
+    if (guess === '') return;
+    const val = Number(guess);
+    const correct = (val === current.answer);
+    if (correct) {
+      good++;
+      streak++;
+      bestStreak = Math.max(bestStreak, streak);
+      elFeedback.textContent = 'Correct!';
+      elFeedback.className = 'feedback ok';
+      elLast.textContent = '✓';
+      elLast.style.color = 'var(--good)';
+      flash(fxGood, GOOD_IMGS, 500);
+      setTimeout(() => nextQuestion(), 180);
+    } else {
+      bad++;
+      streak = 0;
+      elFeedback.textContent = 'Try again';
+      elFeedback.className = 'feedback no';
+      elLast.textContent = '✗';
+      elLast.style.color = 'var(--bad)';
+      flash(fxBad, BAD_IMGS, 700);
+    }
+    updateStats();
+  }
+
+  function skip() {
+    if (!running) return;
+    bad++;
+    streak = 0;
+    elLast.textContent = '⏭';
+    elLast.style.color = 'var(--warn)';
+    updateStats();
+    flash(fxBad, BAD_IMGS, 700);
+    nextQuestion();
+  }
+
+  function startTimerIfNeeded() {
+    const sec = +elTimerSec.value;
+    if (!sec) {
+      elTimer.textContent = 'Timer: off';
+      return;
+    }
+    remaining = sec;
+    renderTimer();
+    stopTimer();
+    tick = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        bad++;
+        streak = 0;
+        updateStats();
+        elFeedback.textContent = 'Time out — next!';
+        elFeedback.className = 'feedback no';
+        elLast.textContent = '⏲';
+        elLast.style.color = 'var(--bad)';
+        flash(fxBad, BAD_IMGS, 700);
+        nextQuestion();
+      } else {
+        renderTimer();
+      }
+    }, 1000);
+  }
+  function stopTimer() { if (tick) { clearInterval(tick); tick = null; } }
+  function renderTimer() {
+    const warn = remaining <= Math.max(3, Math.floor(+elTimerSec.value * 0.25));
+    elTimer.textContent = `⏱ ${remaining}s`;
+    elTimer.style.color = warn ? 'var(--warn)' : 'var(--ink)';
+  }
+
+  function accuracy() {
+    const total = good + bad;
+    if (!total) return '—';
+    return Math.round((good / total) * 100);
+  }
+  function updateStats() {
+    elStatGood.textContent = good;
+    elStatBad.textContent  = bad;
+    const acc = accuracy();
+    elStatAcc.textContent = acc === '—' ? '—' : `${acc}%`;
+    elStreak.textContent = streak;
+    elBest.textContent = bestStreak;
+  }
+
+  elDiff.addEventListener('input', () => elDiffVal.textContent = elDiff.value);
+  elTimerSec.addEventListener('input', () => elTimerVal.textContent = `${elTimerSec.value}s`);
+  elStart.addEventListener('click', start);
+  elReset.addEventListener('click', reset);
+  elSkip.addEventListener('click', skip);
+  elSubmit.addEventListener('click', submit);
+  elAnswer.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submit();
+    if (e.key === 'Escape') { elAnswer.value = ''; elFeedback.textContent = ' '; elFeedback.className = 'feedback'; }
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 's') skip();
+    if (e.key.toLowerCase() === 'n' && elFeedback.classList.contains('ok')) nextQuestion();
+  });
+
+  // Keep numeric-only
+  elAnswer.addEventListener('input', () => {
+    const allowMinus = current && current.op === 'sub';
+    const cleaned = elAnswer.value.replace(/[^\d-]/g, '');
+    elAnswer.value = allowMinus ? cleaned.replace(/(?!^)-/g, '') : cleaned.replace(/-/g,'');
+  });
+})();
+</script>
+</body>
+</html>
