@@ -11,47 +11,34 @@
   .wrap{width:min(1000px,96vw);margin:28px 0 56px}
   header{display:grid;gap:12px;grid-template-columns:1fr auto;align-items:start;margin-bottom:16px}
   h1{font-weight:800;margin:0;letter-spacing:.2px;font-size:clamp(20px,2.8vw,28px)}
-
-  /* Controls layout */
   .controls{display:grid;gap:10px;padding:14px;background:color-mix(in oklab,var(--panel),#000 6%);border:1px solid #262b4a;border-radius:14px;grid-template-columns:repeat(8,minmax(0,1fr));align-items:end}
   .group{display:grid;gap:6px} label{font-size:12px;color:var(--muted);letter-spacing:.2px}
   select,input[type="range"],input[type="text"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2c335a;background:#0e1330;color:var(--ink);outline:none}
+  /* Names: make wide and readable */
+  .group.names{grid-column:span 3}
+  .names .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .range-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
   .chip{background:var(--chip);border:1px solid #2b3155;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
-
-  /* Names: make truly wide */
-  .group.names{grid-column:1 / span 3}
-  .group.names .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  #nameP1,#nameP2{min-width:220px;font-size:16px}
-
   .btn{appearance:none;border:1px solid #2c335a;background:linear-gradient(180deg,#1e2550,#141a3b);color:#fff;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;letter-spacing:.2px;transition:transform .03s ease,filter .15s ease,border-color .15s ease}
   .btn:hover{filter:brightness(1.08);border-color:#3a4381} .btn:active{transform:translateY(1px) scale(.997)}
   .btn.ghost{background:#0e1330;color:var(--muted)} .btn.good{background:linear-gradient(180deg,#16553f,#103c2d);border-color:#1f6b4f;color:#d3ffe9}
-
   .grid{display:grid;grid-template-columns:3fr 2fr;gap:16px;align-items:stretch}
   .card{background:var(--panel);border:1px solid #262b4a;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
   .problem{display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
   .formula{font-size:clamp(36px,6vw,64px);font-weight:800;letter-spacing:1px}
   .turn{font-weight:700;color:#a7b4ff}
-
   .answer-rows{display:grid;gap:10px;width:min(560px,96%)}
   .row{display:grid;grid-template-columns:1fr auto;gap:10px}
   .row input{padding:12px 14px;border-radius:12px;border:1px solid #2c335a;outline:none;background:#0e1330;color:#fff;font-size:clamp(18px,2.2vw,22px);text-align:center;letter-spacing:.5px}
   .p1{border-left:4px solid #6bd3ff;padding-left:8px;border-radius:10px} .p2{border-left:4px solid #ffb86b;padding-left:8px;border-radius:10px}
-  .hidden{display:none !important}
-
   .feedback{height:28px;font-weight:700;letter-spacing:.3px}
   .feedback.ok{color:var(--good)} .feedback.no{color:var(--bad)}
-
   .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
   .stat{background:#0e1330;border:1px solid #2b3155;border-radius:12px;padding:10px 12px;display:grid;gap:4px} .stat b{font-size:22px}
-
   .timer{display:grid;place-items:center;height:80px;background:#0e1330;border:1px solid #2b3155;border-radius:12px;font-weight:800;letter-spacing:.5px;font-size:28px}
-
   .fx-overlay{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .25s ease;z-index:999}
   .fx-overlay.show{opacity:1}
   .fx-overlay img{max-width:min(60vmin,520px);max-height:70vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.55);border:2px solid #2b3155}
-
   footer{margin-top:14px;color:var(--muted);font-size:12px;display:flex;gap:12px;align-items:center}
   @media (max-width:860px){.controls{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}}
 </style>
@@ -104,7 +91,7 @@
       </div>
       <div class="group names">
         <label>Names</label>
-        <div class="row">
+        <div class="names row">
           <input id="nameP1" type="text" placeholder="Player 1" value="Player 1" />
           <input id="nameP2" type="text" placeholder="Player 2" value="Player 2" />
         </div>
@@ -139,11 +126,11 @@
 
           <!-- multiplayer rows -->
           <div id="multiRows" class="answer-rows" style="display:none">
-            <div class="row" id="rowP1">
+            <div class="row">
               <input id="answerP1" class="p1" type="text" inputmode="numeric" placeholder="P1…" disabled />
               <button id="btnSubmitP1" class="btn">Submit</button>
             </div>
-            <div class="row" id="rowP2">
+            <div class="row">
               <input id="answerP2" class="p2" type="text" inputmode="numeric" placeholder="P2…" disabled />
               <button id="btnSubmitP2" class="btn">Submit</button>
             </div>
@@ -198,7 +185,6 @@
   const elAns1=$('#answer1'), elBtn1=$('#btnSubmit1');
   const elP1=$('#answerP1'), elP2=$('#answerP2');
   const elBtnP1=$('#btnSubmitP1'), elBtnP2=$('#btnSubmitP2');
-  const rowP1=$('#rowP1'), rowP2=$('#rowP2');
 
   const elFormula=$('#formula'), elFeedback=$('#feedback');
   const elStatGood=$('#statGood'), elStatBad=$('#statBad'), elStatAcc=$('#statAcc');
@@ -266,44 +252,22 @@
   function updateTurnBanner(){ elTurn.textContent = elPlayers.value==='2' ? `Turn: ${activeName()}` : '—'; }
 
   // ------- UI mode -------
-  function enableInputsForTurn(){
-    const two = elPlayers.value === '2';
-    if (!two) {
-      elSingle.style.display = 'grid';
-      elMulti.style.display  = 'none';
-      elAns1.disabled=false;
-      elP1.disabled = elP2.disabled = true;
-      return;
-    }
-    elSingle.style.display = 'none';
-    elMulti.style.display  = 'grid';
-
-    const p1Active = (turn === 'p1');
-    rowP1.classList.toggle('hidden', !p1Active);
-    rowP2.classList.toggle('hidden',  p1Active);
-
-    elP1.disabled = !p1Active;
-    elP2.disabled =  p1Active;
-
-    (p1Active ? elP1 : elP2).focus();
-  }
-
   function uiMode(){
     const two=elPlayers.value==="2";
+    elSingle.style.display = two ? 'none':'grid';
+    elMulti.style.display  = two ? 'grid':'none';
+    elVersus.style.display = two ? 'grid':'none';
     $('#answerP1').placeholder = elNameP1.value||'Player 1';
     $('#answerP2').placeholder = elNameP2.value||'Player 2';
     elLblP1.textContent=(elNameP1.value||'Player 1')+' ✓ / ✗';
     elLblP2.textContent=(elNameP2.value||'Player 2')+' ✓ / ✗';
-    elVersus.style.display = two ? 'grid' : 'none';
     updateTurnBanner();
-    enableInputsForTurn();
   }
   elPlayers.addEventListener('change', uiMode);
   elNameP1.addEventListener('input', uiMode);
   elNameP2.addEventListener('input', uiMode);
 
   // ------- Core flow -------
-  let everyonePlayed = () => (p1.played>=parseInt(elRounds.value,10) && p2.played>=parseInt(elRounds.value,10));
   function start(){
     if(running) return;
     AC.resume?.();
@@ -313,7 +277,7 @@
 
     // Randomize who starts
     turn = Math.random()<0.5 ? 'p1' : 'p2';
-    enableInputsForTurn(); updateTurnBanner();
+    enableInputsForTurn();
     next(true);
     updateStats(); uiMode();
   }
@@ -325,23 +289,38 @@
     elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
     elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
     updateStats(); updateTurnBanner();
-    elSingle.style.display='grid'; elMulti.style.display='none';
   }
 
-  function sessionFinishedFor(id){ return (id==='p1'?p1:p2).played >= parseInt(elRounds.value,10); }
+  function enableInputsForTurn(){
+    const two = elPlayers.value==='2';
+    if(!two){ elAns1.disabled=false; elP1.disabled=elP2.disabled=true; return;}
+    elP1.disabled = !(turn==='p1');
+    elP2.disabled = !(turn==='p2');
+    (turn==='p1'?elP1:elP2).focus();
+  }
+
+  function sessionFinishedFor(turnId){
+    const limit = parseInt(elRounds.value,10);
+    return (turnId==='p1'?p1.played:p2.played) >= limit;
+  }
+
+  function everyoneFinished(){
+    const limit = parseInt(elRounds.value,10);
+    return p1.played>=limit && p2.played>=limit;
+  }
 
   function next(initial=false){
     stopTimer();
-
     if(elPlayers.value==='2'){
-      // if current player finished, switch or finish
+      // If current player finished their rounds, switch or finish
       if(sessionFinishedFor(turn)){
-        if(everyonePlayed()) return finish();
-        turn = (turn==='p1') ? 'p2' : 'p1';
-        enableInputsForTurn(); updateTurnBanner();
+        if(everyoneFinished()){ return finish(); }
+        turn = (turn==='p1')?'p2':'p1';
+        enableInputsForTurn();
+        updateTurnBanner();
       }
     }
-
+    if(!initial && elPlayers.value!=='2'){ /* single mode used session length earlier; keeping simple */ }
     qCount++;
     const mode=pickOp(elMode.value), L=+elDiff.value;
     current=ops[mode].gen(L);
@@ -355,13 +334,14 @@
   function finish(){
     stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
     const acc=accuracy();
+    // winner by correct; tie-break by fewer wrong
+    const p1Score=p1.ok, p2Score=p2.ok;
     let verdict='Session complete — ';
     if(elPlayers.value==='2'){
-      const p1Score=p1.ok, p2Score=p2.ok;
       if(p1Score>p2Score) verdict+=`${elNameP1.value||'Player 1'} wins!`;
       else if(p2Score>p1Score) verdict+=`${elNameP2.value||'Player 2'} wins!`;
       else {
-        const t1=p1.no,t2=p2.no;
+        const t1=p1.no, t2=p2.no;
         verdict+=(t1<t2?`${elNameP1.value||'Player 1'} wins by fewer mistakes!`:
                   t2<t1?`${elNameP2.value||'Player 2'} wins by fewer mistakes!`:'It’s a tie!');
       }
@@ -374,10 +354,11 @@
   }
 
   // ------- Answer submit -------
-  function consumeRound(){ if(elPlayers.value==='2'){ (turn==='p1'?p1:p2).played++; } }
-  function handleSubmit(val, who){
+  function consumeRound(){ if(elPlayers.value==='2'){ if(turn==='p1') p1.played++; else p2.played++; } }
+  function handleSubmit(val, who){ // 'solo'|'p1'|'p2'
     if(!running||!current||val==='') return;
-    const num=Number(val), correct=(num===current.answer);
+    const num=Number(val);
+    const correct = (num===current.answer);
     if(correct){
       good++; streak++; bestStreak=Math.max(bestStreak,streak);
       if(who==='p1'){ p1.ok++; elP1Score.textContent=`${p1.ok} / ${p1.no}`; elLead.textContent=leadText(); }
@@ -394,6 +375,7 @@
       elFeedback.textContent='Try again'; elFeedback.className='feedback no';
       elLast.textContent='✗'; elLast.style.color='var(--bad)';
       sfx.wrong(); flash(fxBad,BAD_IMGS,700);
+      // stay on same question until correct or timeout/skip
     }
     updateStats();
   }
@@ -406,7 +388,7 @@
     next();
   }
 
-  // ------- Timer -------
+  // ------- Timer (timeout → next + reset) -------
   function startTimerIfNeeded(){
     const sec=+elTimerSec.value;
     if(!sec){ elTimer.textContent='Timer: off'; return; }
