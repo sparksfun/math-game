@@ -19,12 +19,9 @@
   .range-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
   .chip{background:var(--chip);border:1px solid #2b3155;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
 
-  /* Names row full width, with inline avatar previews */
+  /* Names: full-width row */
   .group.names{grid-column:1 / -1}
-  .names-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .namebox{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px}
-  .name-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid #2b3155}
-
+  .group.names .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   #nameP1,#nameP2{min-width:220px;font-size:16px}
 
   .btn{appearance:none;border:1px solid #2c335a;background:linear-gradient(180deg,#1e2550,#141a3b);color:#fff;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;letter-spacing:.2px;transition:transform .03s ease,filter .15s ease,border-color .15s ease}
@@ -38,13 +35,14 @@
   .turn{font-weight:700;color:#a7b4ff}
 
   .answer-rows{display:grid;gap:10px;width:min(560px,96%)}
-  .row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+  .row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
   .row input{padding:12px 14px;border-radius:12px;border:1px solid #2c335a;outline:none;background:#0e1330;color:#fff;font-size:clamp(18px,2.2vw,22px);text-align:center;letter-spacing:.5px}
   .p1{border-left:4px solid #6bd3ff;padding-left:8px;border-radius:10px} .p2{border-left:4px solid #ffb86b;padding-left:8px;border-radius:10px}
   .hidden{display:none !important}
 
-  /* Active-row avatar */
+  /* Tiny avatar next to active input */
   .avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid #2b3155}
+  .row .avatar{justify-self:start}
 
   .feedback{height:28px;font-weight:700;letter-spacing:.3px}
   .feedback.ok{color:var(--good)} .feedback.no{color:var(--bad)}
@@ -71,7 +69,6 @@
   @media (max-width:1200px){
     .controls{grid-template-columns:repeat(4,minmax(0,1fr));}
     .group.names{grid-column:1 / -1;}
-    .names-row{grid-template-columns:1fr}
   }
   @media (max-width:860px){
     .controls{grid-template-columns:1fr 1fr}
@@ -79,6 +76,7 @@
   }
   @media (max-width:700px){
     .controls{grid-template-columns:1fr;}
+    .group.names .row{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -139,18 +137,11 @@
         <input id="musicVol" type="range" min="0" max="1" step="0.01" value="0.35" />
       </div>
 
-      <!-- Names + avatar previews -->
       <div class="group names">
         <label>Names</label>
-        <div class="names-row">
-          <div class="namebox">
-            <img id="nameAvatarP1" class="name-avatar" alt="">
-            <input id="nameP1" type="text" placeholder="Player 1" value="Player 1" />
-          </div>
-          <div class="namebox">
-            <img id="nameAvatarP2" class="name-avatar" alt="">
-            <input id="nameP2" type="text" placeholder="Player 2" value="Player 2" />
-          </div>
+        <div class="row">
+          <input id="nameP1" type="text" placeholder="Player 1" value="Player 1" />
+          <input id="nameP2" type="text" placeholder="Player 2" value="Player 2" />
         </div>
       </div>
 
@@ -165,7 +156,7 @@
 
       <div class="group">
         <label>&nbsp;</label>
-        <span class="chip">Start turn: Space/Enter • P1/P2 submit: Enter • Skip: S</span>
+        <span class="chip">P1: Enter • P2: Enter (in their box) • Skip: S • Start turn: Space/Enter</span>
       </div>
     </section>
 
@@ -213,7 +204,7 @@
           <div class="stat"><label>Lead</label><b id="lead">—</b></div>
         </div>
 
-        <footer>Shortcuts: Start turn (Space/Enter) • Submit (Enter) • Esc clear • S skip</footer>
+        <footer>Shortcuts: Enter submit • Esc clear • S skip • Space/Enter to start next player</footer>
       </div>
 
       <div class="card">
@@ -263,7 +254,6 @@
   const elBtnP1=$('#btnSubmitP1'), elBtnP2=$('#btnSubmitP2');
   const rowP1=$('#rowP1'), rowP2=$('#rowP2');
   const avatarP1=$('#avatarP1'), avatarP2=$('#avatarP2'), soloAvatar=$('#soloAvatar');
-  const nameAvatarP1=$('#nameAvatarP1'), nameAvatarP2=$('#nameAvatarP2');
 
   const elFormula=$('#formula'), elFeedback=$('#feedback');
   const elStatGood=$('#statGood'), elStatBad=$('#statBad'), elStatAcc=$('#statAcc');
@@ -280,10 +270,8 @@
   // ------- State -------
   const GOOD_IMGS=["images/correct1.webp","images/correct2.webp"];
   const BAD_IMGS =["images/wrong1.webp"];
-  const TRY_P1=["images/players/p1.webp","images/players/p1.png","images/players/p1.jpg"];
-  const TRY_P2=["images/players/p2.webp","images/players/p2.png","images/players/p2.jpg"];
-
-  let P1_IMG=null, P2_IMG=null;
+  const P1_IMG="images/players/p1.webp";
+  const P2_IMG="images/players/p2.webp";
 
   let running=false, current=null, qCount=0;
   let good=0,bad=0,streak=0,bestStreak=0;
@@ -292,28 +280,16 @@
   let turn='p1';
   let awaitingTurnStart=false;
 
-  // ------- find first existing image among candidates -------
-  function pickFirstAvailable(candidates, cb){
-    let i=0;
-    function tryNext(){
-      if(i>=candidates.length){ cb(null); return; }
-      const src=candidates[i++], img=new Image();
-      img.onload=()=>cb(src);
-      img.onerror=tryNext;
-      img.src=src;
-    }
-    tryNext();
-  }
-  function setAvatar(imgEl, src){ if(!src){ imgEl.classList.add('hidden'); return; } imgEl.src=src; imgEl.classList.remove('hidden'); }
-
-  pickFirstAvailable(TRY_P1, src=>{ P1_IMG=src; [avatarP1,nameAvatarP1,soloAvatar].forEach(el=>setAvatar(el,src)); });
-  pickFirstAvailable(TRY_P2, src=>{ P2_IMG=src; [avatarP2,nameAvatarP2].forEach(el=>setAvatar(el,src)); });
+  // ------- Load avatars (non-breaking if missing) -------
+  [ [avatarP1,P1_IMG], [avatarP2,P2_IMG], [soloAvatar,P1_IMG] ].forEach(([img,src])=>{
+    img.src=src; img.onerror=()=>img.classList.add('hidden');
+  });
 
   // ------- Music -------
   function updateMusic(){
     BGM.volume=+elMusicVol.value;
     if(elMusicOn.value==="1"){
-      BGM.play().catch(()=>{/* overlay start will also trigger play */});
+      BGM.play().catch(()=>{/* user gesture may be required; overlay button will also trigger play */});
     }else{
       BGM.pause(); BGM.currentTime=0;
     }
@@ -368,12 +344,11 @@
   }
   function activeName(){ return turn==='p1' ? (elNameP1.value||'Player 1') : (elNameP2.value||'Player 2'); }
   function updateTurnBanner(){ elTurn.textContent = elPlayers.value==='2' ? `Turn: ${activeName()}` : '—'; }
-  function setRowVis(){
+  function setAvatarRowVisibility(){
     const p1Active = (turn==='p1');
     rowP1.classList.toggle('hidden',!p1Active);
     rowP2.classList.toggle('hidden', p1Active);
     elP1.disabled=!p1Active; elP2.disabled=p1Active;
-    (p1Active?elP1:elP2).focus();
   }
 
   // ------- UI mode -------
@@ -387,34 +362,33 @@
     elSingle.style.display = two ? 'none' : 'grid';
     elMulti.style.display  = two ? 'grid' : 'none';
     updateTurnBanner();
-    if(two) setRowVis();
+    if(two) setAvatarRowVisibility();
   }
   elPlayers.addEventListener('change',uiMode);
   elNameP1.addEventListener('input',uiMode);
   elNameP2.addEventListener('input',uiMode);
 
-  // ------- Turn overlay (hand-off) -------
-  let awaitingTurnStart=false;
+  // ------- Turn overlay -------
   function showTurnOverlay(){
     if(elPlayers.value!=='2') return;
     overlayText.textContent = `Next up: ${activeName()}`;
-    overlayAvatar.src = (turn==='p1' ? (P1_IMG||'') : (P2_IMG||''));
-    if(!overlayAvatar.src) overlayAvatar.classList.add('hidden'); else overlayAvatar.classList.remove('hidden');
+    overlayAvatar.src = (turn==='p1'?P1_IMG:P2_IMG);
     overlay.classList.add('show');
     awaitingTurnStart = true;
   }
   function hideTurnOverlay(){
     overlay.classList.remove('show');
     awaitingTurnStart = false;
-    if(elMusicOn.value==="1"){ BGM.play().catch(()=>{}); } // gesture satisfied
+    // start music if user interaction was required
+    if(elMusicOn.value==="1") { BGM.play().catch(()=>{}); }
   }
-  $('#btnBeginTurn').addEventListener('click',()=>{
+  btnBeginTurn.addEventListener('click',()=>{
     hideTurnOverlay();
-    setRowVis();
-    next(true); // first question of this turn
+    enableInputsForTurn();
+    next(true); // generate first question of this turn
   });
   window.addEventListener('keydown',e=>{
-    if(awaitingTurnStart && (e.key===' ' || e.key==='Enter')){ e.preventDefault(); $('#btnBeginTurn').click(); }
+    if(awaitingTurnStart && (e.key===' ' || e.key==='Enter')){ e.preventDefault(); btnBeginTurn.click(); }
   });
 
   // ------- Core flow -------
@@ -426,9 +400,10 @@
     p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     elStart.textContent='Running…'; elStart.disabled=true;
 
+    // Randomize who starts; show overlay instead of instant jump
     turn = Math.random()<0.5 ? 'p1' : 'p2';
-    setRowVis(); updateTurnBanner();
-    showTurnOverlay(); // wait for start
+    setAvatarRowVisibility(); updateTurnBanner();
+    showTurnOverlay(); // Wait for Start turn
   }
   function reset(){
     stopTimer(); running=false; current=null; qCount=good=bad=streak=bestStreak=0;
@@ -442,18 +417,30 @@
     elSingle.style.display='grid'; elMulti.style.display='none';
   }
 
+  function enableInputsForTurn(){
+    const two = elPlayers.value==='2';
+    if (!two) {
+      elAns1.disabled=false;
+      elP1.disabled = elP2.disabled = true;
+      return;
+    }
+    setAvatarRowVisibility();
+    (turn==='p1'?elP1:elP2).focus();
+  }
+
   function sessionFinishedFor(id){ return (id==='p1'?p1:p2).played >= parseInt(elRounds.value,10); }
 
   function next(initial=false){
-    if(awaitingTurnStart) return;
+    if(awaitingTurnStart) return; // gated by overlay
     stopTimer();
 
     if(elPlayers.value==='2' && !initial){
+      // if the current player exhausted rounds, switch and show overlay
       if(sessionFinishedFor(turn)){
         if(everyonePlayed()) return finish();
         turn = (turn==='p1') ? 'p2' : 'p1';
-        updateTurnBanner();
-        showTurnOverlay(); // pause here until user starts next turn
+        updateTurnBanner(); setAvatarRowVisibility();
+        showTurnOverlay(); // wait for human to get to keyboard
         return;
       }
     }
@@ -529,6 +516,7 @@
     tick=setInterval(()=>{
       remaining--;
       if(remaining>0){ sfx.tick(); renderTimer(); return; }
+      // timeout
       bad++; streak=0; updateStats();
       elFeedback.textContent='Time out — next!'; elFeedback.className='feedback no';
       elLast.textContent='⏲'; elLast.style.color='var(--bad)';
@@ -564,12 +552,12 @@
   elP2  .addEventListener('keydown',e=>{ if(e.key==='Enter'&&turn==='p2')handleSubmit(elP2.value.trim(),'p2'); if(e.key==='Escape')elP2.value=''; });
   window.addEventListener('keydown',e=>{ if(e.key.toLowerCase()==='s') skip(); });
 
-  // numeric-only inputs
+  // numeric-only
   [elAns1,elP1,elP2].forEach(inp=>{
     inp.addEventListener('input',()=>inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''));
   });
 
-  // preload result overlays
+  // preload overlays
   fxGoodImg.src=GOOD_IMGS[0]; fxBadImg.src=BAD_IMGS[0];
 
   // init
