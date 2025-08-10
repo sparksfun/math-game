@@ -11,31 +11,59 @@
   .wrap{width:min(1000px,96vw);margin:28px 0 56px}
   header{display:grid;gap:12px;grid-template-columns:1fr auto;align-items:start;margin-bottom:16px}
   h1{font-weight:800;margin:0;letter-spacing:.2px;font-size:clamp(20px,2.8vw,28px)}
+
   .controls{display:grid;gap:10px;padding:14px;background:color-mix(in oklab,var(--panel),#000 6%);border:1px solid #262b4a;border-radius:14px;grid-template-columns:repeat(8,minmax(0,1fr));align-items:end}
   .group{display:grid;gap:6px} label{font-size:12px;color:var(--muted);letter-spacing:.2px}
   select,input[type="range"],input[type="text"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2c335a;background:#0e1330;color:var(--ink);outline:none}
   .range-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
   .chip{background:var(--chip);border:1px solid #2b3155;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
+
+  /* Names full-width row with small avatar previews (players/) */
+  .group.names{grid-column:1 / -1}
+  .names-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .namebox{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px}
+  .name-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid #2b3155}
+  #nameP1,#nameP2{min-width:220px;font-size:16px}
+
   .btn{appearance:none;border:1px solid #2c335a;background:linear-gradient(180deg,#1e2550,#141a3b);color:#fff;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;letter-spacing:.2px;transition:transform .03s ease,filter .15s ease,border-color .15s ease}
   .btn:hover{filter:brightness(1.08);border-color:#3a4381} .btn:active{transform:translateY(1px) scale(.997)}
   .btn.ghost{background:#0e1330;color:var(--muted)} .btn.good{background:linear-gradient(180deg,#16553f,#103c2d);border-color:#1f6b4f;color:#d3ffe9}
+
   .grid{display:grid;grid-template-columns:3fr 2fr;gap:16px;align-items:stretch}
   .card{background:var(--panel);border:1px solid #262b4a;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+
   .problem{display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
   .formula{font-size:clamp(36px,6vw,64px);font-weight:800;letter-spacing:1px}
+
   .answer-rows{display:grid;gap:10px;width:min(560px,96%)}
-  .row{display:grid;grid-template-columns:1fr auto;gap:10px}
+  .row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
   .row input{padding:12px 14px;border-radius:12px;border:1px solid #2c335a;outline:none;background:#0e1330;color:#fff;font-size:clamp(18px,2.2vw,22px);text-align:center;letter-spacing:.5px}
-  .p1{border-left:4px solid #6bd3ff;padding-left:8px;border-radius:10px} .p2{border-left:4px solid #ffb86b;padding-left:8px;border-radius:10px}
+  .p1{border-left:4px solid #6bd3ff;padding-left:8px;border-radius:10px}
+  .p2{border-left:4px solid #ffb86b;padding-left:8px;border-radius:10px}
+  .avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid #2b3155}
+  .hidden{display:none !important}
+
   .feedback{height:28px;font-weight:700;letter-spacing:.3px}
   .feedback.ok{color:var(--good)} .feedback.no{color:var(--bad)}
+
   .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
   .stat{background:#0e1330;border:1px solid #2b3155;border-radius:12px;padding:10px 12px;display:grid;gap:4px} .stat b{font-size:22px}
+
   .timer{display:grid;place-items:center;height:80px;background:#0e1330;border:1px solid #2b3155;border-radius:12px;font-weight:800;letter-spacing:.5px;font-size:28px}
+
   .fx-overlay{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .25s ease;z-index:999}
   .fx-overlay.show{opacity:1}
   .fx-overlay img{max-width:min(60vmin,520px);max-height:70vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.55);border:2px solid #2b3155}
+
+  /* Turn overlay */
+  .turn-overlay{position:fixed;inset:0;background:rgba(5,8,20,.88);backdrop-filter:blur(6px);display:grid;place-items:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s ease}
+  .turn-overlay.show{opacity:1;pointer-events:auto}
+  .turn-card{background:var(--panel);border:1px solid #2b3155;border-radius:18px;padding:28px;display:grid;gap:14px;place-items:center;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  .turn-card h2{margin:0;font-size:clamp(20px,3.2vw,28px)}
+  .turn-avatar{width:min(22vmin,140px);height:min(22vmin,140px);border-radius:50%;object-fit:cover;border:2px solid #2b3155}
+
   footer{margin-top:14px;color:var(--muted);font-size:12px;display:flex;gap:12px;align-items:center}
+
   @media (max-width:860px){.controls{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -85,13 +113,22 @@
           <option value="2">Head-to-Head (2)</option>
         </select>
       </div>
-      <div class="group">
+
+      <!-- Names + small avatar previews -->
+      <div class="group names">
         <label>Names</label>
-        <div class="row" style="grid-template-columns:1fr 1fr;gap:8px">
-          <input id="nameP1" type="text" placeholder="Player 1" value="Player 1" />
-          <input id="nameP2" type="text" placeholder="Player 2" value="Player 2" />
+        <div class="names-row">
+          <div class="namebox">
+            <img id="nameAvatarP1" class="name-avatar" src="players/p1.png" alt="P1" onerror="this.style.display='none'">
+            <input id="nameP1" type="text" placeholder="Player 1" value="Player 1" />
+          </div>
+          <div class="namebox">
+            <img id="nameAvatarP2" class="name-avatar" src="players/p2.png" alt="P2" onerror="this.style.display='none'">
+            <input id="nameP2" type="text" placeholder="Player 2" value="Player 2" />
+          </div>
         </div>
       </div>
+
       <div class="group">
         <label>Sound</label>
         <div class="range-row">
@@ -100,32 +137,37 @@
         </div>
         <input id="volume" type="range" min="0" max="1" step="0.01" value="0.5" />
       </div>
+
       <div class="group">
         <label>&nbsp;</label>
-        <span class="chip">P1: Enter • P2: Enter (in their box) • Skip: S</span>
+        <span class="chip">Start turn: Space/Enter • Submit: Enter • Skip: S</span>
       </div>
     </section>
 
     <section class="grid" style="margin-top:16px">
       <div class="card">
         <div class="problem" id="problem">
+          <div class="turn" id="turnBanner">—</div>
           <div id="formula" class="formula">—</div>
 
-          <!-- single player row -->
+          <!-- single player -->
           <div id="singleRows" class="answer-rows" style="display:grid">
             <div class="row">
+              <img id="soloAvatar" class="avatar hidden" alt="">
               <input id="answer1" class="p1" type="text" inputmode="numeric" placeholder="Your answer…" disabled />
               <button id="btnSubmit1" class="btn">Submit ⏎</button>
             </div>
           </div>
 
-          <!-- multiplayer rows -->
+          <!-- multiplayer (only active row shown) -->
           <div id="multiRows" class="answer-rows" style="display:none">
-            <div class="row">
+            <div class="row" id="rowP1">
+              <img id="avatarP1" class="avatar" src="players/p1.png" alt="P1" onerror="this.style.display='none'">
               <input id="answerP1" class="p1" type="text" inputmode="numeric" placeholder="P1…" disabled />
               <button id="btnSubmitP1" class="btn">Submit</button>
             </div>
-            <div class="row">
+            <div class="row" id="rowP2">
+              <img id="avatarP2" class="avatar" src="players/p2.png" alt="P2" onerror="this.style.display='none'">
               <input id="answerP2" class="p2" type="text" inputmode="numeric" placeholder="P2…" disabled />
               <button id="btnSubmitP2" class="btn">Submit</button>
             </div>
@@ -147,7 +189,7 @@
           <div class="stat"><label>Lead</label><b id="lead">—</b></div>
         </div>
 
-        <footer>Shortcuts: Enter to submit in active box • Esc clear • S skip</footer>
+        <footer>Shortcuts: Start turn (Space/Enter) • Submit (Enter) • Esc clear • S skip</footer>
       </div>
 
       <div class="card">
@@ -164,229 +206,35 @@
   <div id="fxGood" class="fx-overlay"><img id="fxGoodImg" alt="Correct"></div>
   <div id="fxBad"  class="fx-overlay"><img id="fxBadImg"  alt="Incorrect"></div>
 
+  <!-- Turn overlay -->
+  <div id="turnOverlay" class="turn-overlay">
+    <div class="turn-card">
+      <img id="turnAvatar" class="turn-avatar" alt="">
+      <h2 id="turnText">Next up: —</h2>
+      <button id="btnBeginTurn" class="btn good">Start turn ▶</button>
+      <div class="chip">or press Space / Enter</div>
+    </div>
+  </div>
+
 <script>
-(() => {
-  // ------- DOM -------
-  const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
-  const elMode=$('#mode'), elDiff=$('#difficulty'), elDiffVal=$('#diffVal');
-  const elTimerSec=$('#timerSec'), elTimerVal=$('#timerVal'), elMaxQs=$('#maxQs');
-  const elPlayers=$('#players'), elNameP1=$('#nameP1'), elNameP2=$('#nameP2');
-  const elSoundOn=$('#soundOn'), elVol=$('#volume');
+(function(){
+  // ===== DOM =====
+  var $=function(s){return document.querySelector(s);}
+  var elMode=$('#mode'), elDiff=$('#difficulty'), elDiffVal=$('#diffVal');
+  var elTimerSec=$('#timerSec'), elTimerVal=$('#timerVal'), elMaxQs=$('#maxQs');
+  var elPlayers=$('#players'), elNameP1=$('#nameP1'), elNameP2=$('#nameP2');
 
-  const elStart=$('#btnStart'), elReset=$('#btnReset');
-  const elSingle=$('#singleRows'), elMulti=$('#multiRows');
-  const elAns1=$('#answer1'), elBtn1=$('#btnSubmit1');
-  const elP1=$('#answerP1'), elP2=$('#answerP2');
-  const elBtnP1=$('#btnSubmitP1'), elBtnP2=$('#btnSubmitP2');
+  var elSoundOn=$('#soundOn'), elVol=$('#volume');
 
-  const elFormula=$('#formula'), elFeedback=$('#feedback');
-  const elStatGood=$('#statGood'), elStatBad=$('#statBad'), elStatAcc=$('#statAcc');
-  const elQIndex=$('#qIndex'), elTimer=$('#timer'), elStreak=$('#streak'), elBest=$('#bestStreak'), elLast=$('#lastResult');
-  const elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
-  const elLblP1=$('#lblP1'), elLblP2=$('#lblP2');
+  var elStart=$('#btnStart'), elReset=$('#btnReset');
+  var elSingle=$('#singleRows'), elMulti=$('#multiRows');
+  var elAns1=$('#answer1'), elBtn1=$('#btnSubmit1');
+  var elP1=$('#answerP1'), elP2=$('#answerP2');
+  var elBtnP1=$('#btnSubmitP1'), elBtnP2=$('#btnSubmitP2');
+  var rowP1=$('#rowP1'), rowP2=$('#rowP2');
 
-  const fxGood=$('#fxGood'), fxBad=$('#fxBad'), fxGoodImg=$('#fxGoodImg'), fxBadImg=$('#fxBadImg');
-
-  // ------- State -------
-  const GOOD_IMGS=["images/correct1.webp","images/correct2.webp"];
-  const BAD_IMGS =["images/wrong1.webp"];
-  let running=false, current=null, qCount=0;
-  let good=0,bad=0,streak=0,bestStreak=0;
-  let p1={ok:0,no:0}, p2={ok:0,no:0};
-  let tick=null, remaining=0;
-
-  // ------- Sound (WebAudio) -------
-  const AC=new (window.AudioContext||window.webkitAudioContext)();
-  const master=AC.createGain(); master.connect(AC.destination); master.gain.value=+elVol.value;
-  const soundOn=()=>elSoundOn.value==="1";
-  elVol.addEventListener('input',()=>master.gain.value=+elVol.value);
-
-  function tone(freq,dur=0.12,type='sine',when=0,vol=0.3){
-    if(!soundOn()) return;
-    const o=AC.createOscillator(), g=AC.createGain();
-    o.type=type; o.frequency.value=freq; o.connect(g); g.connect(master);
-    const t=AC.currentTime+when; o.start(t);
-    g.gain.setValueAtTime(0.0001,t);
-    g.gain.exponentialRampToValueAtTime(vol,t+0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-    o.stop(t+dur+0.02);
-  }
-  const sfx={
-    correct(){ [523,659,784].forEach((f,i)=>tone(f,0.10,'triangle',i*0.08,0.25)); },
-    wrong(){ tone(200,0.25,'sawtooth',0,0.35); tone(140,0.22,'sawtooth',0.04,0.28); },
-    tick(){ tone(900,0.03,'square',0,0.12); },
-    timeout(){ [523,392,330].forEach((f,i)=>tone(f,0.12,'sine',i*0.09,0.22)); }
-  };
-
-  // ------- Math -------
-  const clamp=(n,a,b)=>Math.min(Math.max(n,a),b);
-  const rnd=(min,max)=>Math.floor(Math.random()*(max-min+1))+min;
-  const pickOp=m=>m!=='mix'?m:['add','sub','mul','div'][rnd(0,3)];
-  function rangeFor(op,L){
-    L=clamp(+L,1,10);
-    const add=[9,12,20,30,40,60,90,120,180,250][L-1];
-    const mul=[5,6,8,9,10,12,15,18,20,25][L-1];
-    if(op==='mul') return {min:0,max:mul};
-    if(op==='div') return {min:1,max:mul};
-    return {min:0,max:add};
-  }
-  const ops={
-    add:{gen:L=>{const r=rangeFor('add',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:`${a} + ${b}`,answer:a+b}}},
-    sub:{gen:L=>{const r=rangeFor('sub',L);let a=rnd(r.min,r.max),b=rnd(r.min,r.max);if(b>a)[a,b]=[b,a];return {text:`${a} − ${b}`,answer:a-b}}},
-    mul:{gen:L=>{const r=rangeFor('mul',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:`${a} × ${b}`,answer:a*b}}},
-    div:{gen:L=>{const r=rangeFor('div',L),b=rnd(r.min,r.max),q=rnd(r.min,r.max),a=b*q;return {text:`${a} ÷ ${b}`,answer:q}}}
-  };
-
-  // ------- Images overlay -------
-  function flash(el,list,hold=600){
-    const pick=list[rnd(0,list.length-1)];
-    (el===fxGood?fxGoodImg:fxBadImg).src=pick;
-    el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),hold);
-  }
-
-  // ------- UI mode -------
-  function uiMode(){
-    const two=elPlayers.value==="2";
-    elSingle.style.display = two ? 'none':'grid';
-    elMulti.style.display  = two ? 'grid':'none';
-    elVersus.style.display = two ? 'grid':'none';
-    // update labels with names
-    elLblP1.textContent = (elNameP1.value||'Player 1') + ' ✓ / ✗';
-    elLblP2.textContent = (elNameP2.value||'Player 2') + ' ✓ / ✗';
-    // placeholders
-    $('#answerP1').placeholder = (elNameP1.value||'Player 1');
-    $('#answerP2').placeholder = (elNameP2.value||'Player 2');
-  }
-  elPlayers.addEventListener('change', uiMode);
-  elNameP1.addEventListener('input', uiMode);
-  elNameP2.addEventListener('input', uiMode);
-
-  // ------- Core flow (kept like original) -------
-  function start(){
-    if(running) return;
-    AC.resume?.();
-    running=true; qCount=0; good=bad=0; streak=bestStreak=0; p1={ok:0,no:0}; p2={ok:0,no:0};
-    elStart.textContent='Running…'; elStart.disabled=true;
-    (elPlayers.value==="2"?[$('#answerP1'),$('#answerP2')]:[$('#answer1')]).forEach(i=>i.disabled=false);
-    next(true); (elPlayers.value==="2"?$('#answerP1'):$('#answer1')).focus();
-    updateStats(); uiMode();
-  }
-  function reset(){
-    stopTimer(); running=false; current=null; qCount=good=bad=streak=bestStreak=0; p1={ok:0,no:0}; p2={ok:0,no:0};
-    elStart.textContent='Start ▶'; elStart.disabled=false;
-    [elAns1,elP1,elP2].forEach(i=>{i.value=''; i.disabled=true;});
-    elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
-    updateStats(); elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
-  }
-  function sessionLimitReached(){
-    const max=elMaxQs.value==='∞'?Infinity:parseInt(elMaxQs.value,10);
-    return (good+bad)>=max;
-  }
-  function next(initial=false){
-    stopTimer(); // ensure old timer cleared
-    if(!initial && sessionLimitReached()) return finish();
-    qCount++;
-    const mode=pickOp(elMode.value), L=+elDiff.value;
-    current=ops[mode].gen(L);
-    elFormula.textContent=current.text+' = ?';
-    elQIndex.textContent=qCount;
-    [elAns1,elP1,elP2].forEach(i=>i.value='');
-    elFeedback.textContent=' '; elFeedback.className='feedback';
-    startTimerIfNeeded(); // new timer for new question
-  }
-  function finish(){
-    stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
-    const acc=accuracy();
-    elFeedback.textContent=`Session complete — ${good} correct, ${bad} wrong, accuracy ${acc==='—'?'—':acc}%`;
-    elFeedback.className='feedback '+(good>=bad?'ok':'no');
-  }
-
-  // ------- Answer submit -------
-  function handleSubmit(val, who){ // 'solo'|'p1'|'p2'
-    if(!running||!current||val==='') return;
-    const num=Number(val);
-    if(num===current.answer){
-      good++; streak++; bestStreak=Math.max(bestStreak,streak);
-      if(who==='p1'){ p1.ok++; elP1Score.textContent=`${p1.ok} / ${p1.no}`; elLead.textContent=leadText(); }
-      if(who==='p2'){ p2.ok++; elP2Score.textContent=`${p2.ok} / ${p2.no}`; elLead.textContent=leadText(); }
-      elFeedback.textContent=(who==='solo'?'Correct!':((who==='p1'?elNameP1.value||'Player 1':elNameP2.value||'Player 2')+' wins!'));
-      elFeedback.className='feedback ok';
-      elLast.textContent='✓'; elLast.style.color='var(--good)';
-      sfx.correct(); flash(fxGood,GOOD_IMGS,500);
-      setTimeout(()=>next(),180);
-    } else {
-      bad++; streak=0;
-      if(who==='p1'){ p1.no++; elP1Score.textContent=`${p1.ok} / ${p1.no}`; }
-      if(who==='p2'){ p2.no++; elP2Score.textContent=`${p2.ok} / ${p2.no}`; }
-      elFeedback.textContent='Try again'; elFeedback.className='feedback no';
-      elLast.textContent='✗'; elLast.style.color='var(--bad)';
-      sfx.wrong(); flash(fxBad,BAD_IMGS,700);
-      // stay on same question
-    }
-    updateStats();
-  }
-  function leadText(){ const d=p1.ok-p2.ok; return d===0?'Tied':(d>0?`${elNameP1.value||'Player 1'} +${d}`:`${elNameP2.value||'Player 2'} +${-d}`); }
-  function skip(){
-    if(!running) return;
-    bad++; streak=0; elLast.textContent='⏭'; elLast.style.color='var(--warn)'; updateStats();
-    flash(fxBad,BAD_IMGS,700); next();
-  }
-
-  // ------- Timer (fixed: timeout → next + reset) -------
-  function startTimerIfNeeded(){
-    const sec=+elTimerSec.value;
-    if(!sec){ elTimer.textContent='Timer: off'; return; }
-    remaining=sec; renderTimer(); stopTimer();
-    tick=setInterval(()=>{
-      remaining--;
-      if(remaining>0){ sfx.tick(); renderTimer(); return; }
-      // timeout
-      bad++; streak=0; updateStats();
-      elFeedback.textContent='Time out — next!'; elFeedback.className='feedback no';
-      elLast.textContent='⏲'; elLast.style.color='var(--bad)';
-      sfx.timeout(); flash(fxBad,BAD_IMGS,700);
-      // move on and reset timer cleanly
-      next();
-    },1000);
-  }
-  function stopTimer(){ if(tick){ clearInterval(tick); tick=null; } }
-  function renderTimer(){
-    const warn=remaining<=Math.max(3,Math.floor(+elTimerSec.value*0.25));
-    elTimer.textContent=`⏱ ${remaining}s`; elTimer.style.color=warn?'var(--warn)':'var(--ink)';
-  }
-
-  // ------- Stats -------
-  function accuracy(){ const t=good+bad; return !t?'—':Math.round((good/t)*100); }
-  function updateStats(){
-    elStatGood.textContent=good; elStatBad.textContent=bad;
-    const acc=accuracy(); elStatAcc.textContent=acc==='—'?'—':`${acc}%`;
-    elStreak.textContent=streak; elBest.textContent=bestStreak;
-  }
-
-  // ------- Events -------
-  elDiff.addEventListener('input',()=>elDiffVal.textContent=elDiff.value);
-  elTimerSec.addEventListener('input',()=>elTimerVal.textContent=`${elTimerSec.value}s`);
-  elStart.addEventListener('click',start); elReset.addEventListener('click',reset);
-  elBtn1.addEventListener('click',()=>handleSubmit(elAns1.value.trim(),'solo'));
-  elBtnP1.addEventListener('click',()=>handleSubmit(elP1.value.trim(),'p1'));
-  elBtnP2.addEventListener('click',()=>handleSubmit(elP2.value.trim(),'p2'));
-
-  elAns1.addEventListener('keydown',e=>{ if(e.key==='Enter')handleSubmit(elAns1.value.trim(),'solo'); if(e.key==='Escape')elAns1.value=''; });
-  elP1  .addEventListener('keydown',e=>{ if(e.key==='Enter')handleSubmit(elP1.value.trim(),'p1');   if(e.key==='Escape')elP1.value='';   });
-  elP2  .addEventListener('keydown',e=>{ if(e.key==='Enter')handleSubmit(elP2.value.trim(),'p2');   if(e.key==='Escape')elP2.value='';   });
-  window.addEventListener('keydown',e=>{ if(e.key.toLowerCase()==='s') skip(); });
-
-  // numeric-only
-  [elAns1,elP1,elP2].forEach(inp=>{
-    inp.addEventListener('input',()=>inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''));
-  });
-
-  // preload overlays (fix: ensure images show)
-  fxGoodImg.src=GOOD_IMGS[0]; fxBadImg.src=BAD_IMGS[0];
-
-  // init
-  reset(); uiMode();
-})();
-</script>
-</body>
-</html>
+  var elFormula=$('#formula'), elFeedback=$('#feedback');
+  var elStatGood=$('#statGood'), elStatBad=$('#statBad'), elStatAcc=$('#statAcc');
+  var elQIndex=$('#qIndex'), elTimer=$('#timer'), elStreak=$('#streak'), elBest=$('#bestStreak'), elLast=$('#lastResult');
+  var elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
+  var elLblP1=$('#lblP1'), elLblP2=$('#
