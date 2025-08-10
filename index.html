@@ -5,11 +5,258 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Math Sprint — Head-to-Head</title>
 <style>
-  /* your CSS exactly as before */
+  :root{--bg:#0f1220;--panel:#161a2e;--ink:#e9ecf1;--muted:#aab3c5;--good:#38d39f;--bad:#ff6b6b;--warn:#ffb020;--chip:#232843}
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:radial-gradient(1200px 800px at 10% -10%,#1b2142 0%,var(--bg) 55%);color:var(--ink);display:grid;place-items:start stretch}
+  .wrap {width: 100%; margin: 28px 0 56px;}
+
+  header{display:grid;gap:12px;grid-template-columns:1fr auto;align-items:start;margin-bottom:16px}
+  h1{font-weight:800;margin:0;letter-spacing:.2px;font-size:clamp(20px,2.8vw,28px)}
+
+  .controls{display:grid;gap:10px;padding:14px;background:color-mix(in oklab,var(--panel),#000 6%);border:1px solid #262b4a;border-radius:14px;grid-template-columns:repeat(8,minmax(0,1fr));align-items:end}
+  .group{display:grid;gap:6px} label{font-size:12px;color:var(--muted);letter-spacing:.2px}
+  select,input[type="range"],input[type="text"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2c335a;background:#0e1330;color:var(--ink);outline:none}
+  .range-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
+  .chip{background:var(--chip);border:1px solid #2b3155;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
+
+  /* Names row full width, with inline avatar previews (players/) */
+  .group.names{grid-column:1 / -1}
+  .names-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .namebox{display:grid;grid-template-columns:40px 1fr;align-items:center;gap:8px}
+  .name-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid #2b3155}
+  #nameP1,#nameP2{min-width:220px;font-size:16px}
+
+  .btn{appearance:none;border:1px solid #2c335a;background:linear-gradient(180deg,#1e2550,#141a3b);color:#fff;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;letter-spacing:.2px;transition:transform .03s ease,filter .15s ease,border-color .15s ease}
+  .btn:hover{filter:brightness(1.08);border-color:#3a4381} .btn:active{transform:translateY(1px) scale(.997)}
+  .btn.ghost{background:#0e1330;color:var(--muted)} .btn.good{background:linear-gradient(180deg,#16553f,#103c2d);border-color:#1f6b4f;color:#d3ffe9}
+
+  .grid {display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: stretch; }
+  .card{background:var(--panel);border:1px solid #262b4a;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .problem{display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
+  .formula{font-size:clamp(36px,6vw,64px);font-weight:800;letter-spacing:1px}
+
+  .answer-rows{display:grid;gap:10px;width:100%}
+  .row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+  .row input{padding:12px 14px;border-radius:12px;border:1px solid #2c335a;outline:none;background:#0e1330;color:#fff;font-size:clamp(18px,2.2vw,22px);text-align:center;letter-spacing:.5px}
+  .p1{border-left:4px solid #6bd3ff;padding-left:8px;border-radius:10px}
+  .p2{border-left:4px solid #ffb86b;padding-left:8px;border-radius:10px}
+  .avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid #2b3155}
+  .hidden{display:none !important}
+
+  .feedback{height:28px;font-weight:700;letter-spacing:.3px}
+  .feedback.ok{color:var(--good)} .feedback.no{color:var(--bad)}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .stat{background:#0e1330;border:1px solid #2b3155;border-radius:12px;padding:10px 12px;display:grid;gap:4px} .stat b{font-size:22px}
+
+  .timer{display:grid;place-items:center;height:80px;background:#0e1330;border:1px solid #2b3155;border-radius:12px;font-weight:800;letter-spacing:.5px;font-size:28px}
+
+  .fx-overlay{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .25s ease;z-index:999}
+  .fx-overlay.show{opacity:1}
+  .fx-overlay img{max-width:min(60vmin,520px);max-height:70vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.55);border:2px solid #2b3155}
+
+  /* Turn overlay */
+  .turn-overlay{position:fixed;inset:0;background:rgba(5,8,20,.88);backdrop-filter:blur(6px);display:grid;place-items:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s ease}
+  .turn-overlay.show{opacity:1;pointer-events:auto}
+  .turn-card{background:var(--panel);border:1px solid #2b3155;border-radius:18px;padding:28px;display:grid;gap:14px;place-items:center;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  .turn-card h2{margin:0;font-size:clamp(20px,3.2vw,28px)}
+  .turn-avatar{width:min(22vmin,140px);height:min(22vmin,140px);border-radius:50%;object-fit:cover;border:2px solid #2b3155}
+
+  footer{margin-top:14px;color:var(--muted);font-size:12px;display:flex;gap:12px;align-items:center}
+
+  @media (max-width:1200px){
+    .controls{grid-template-columns:repeat(4,minmax(0,1fr));}
+    .group.names{grid-column:1 / -1;}
+    .names-row{grid-template-columns:1fr}
+  }
+  @media (max-width:860px){
+    .controls{grid-template-columns:1fr 1fr}
+    .grid{grid-template-columns:1fr}
+  }
+  @media (max-width:700px){
+    .controls{grid-template-columns:1fr;}
+  }
+
+  .final-overlay{position:fixed;inset:0;background:rgba(5,8,20,.88);backdrop-filter:blur(6px);
+    display:grid;place-items:center;z-index:1100;opacity:0;pointer-events:none;transition:opacity .2s ease}
+  .final-overlay.show{opacity:1;pointer-events:auto}
+  .final-card{background:var(--panel);border:1px solid #2b3155;border-radius:20px;padding:30px 28px;
+    display:grid;gap:14px;place-items:center;box-shadow:0 24px 64px rgba(0,0,0,.5);max-width:min(90vw,780px)}
+  .final-card h2{margin:0;font-size:clamp(18px,2.6vw,26px);color:var(--muted)}
+  .final-score{font-weight:900;letter-spacing:.3px;text-align:center;
+    font-size:clamp(28px,4.8vw,56px);line-height:1.15}
 </style>
 </head>
 <body>
-  <!-- your HTML exactly as before -->
+  <div class="wrap">
+    <header>
+      <h1>Math Sprint</h1>
+      <div style="display:flex;gap:10px">
+        <button id="btnStart" class="btn good">Start ▶</button>
+        <button id="btnReset" class="btn ghost">Reset ⟲</button>
+      </div>
+    </header>
+
+    <section class="controls">
+      <div class="group">
+        <label>Mode</label>
+        <select id="mode">
+          <option value="add">Add (+)</option>
+          <option value="sub">Subtract (−)</option>
+          <option value="mul">Multiply (×)</option>
+          <option value="div">Divide (÷)</option>
+          <option value="mix" selected>Mix</option>
+        </select>
+      </div>
+      <div class="group">
+        <label>Difficulty (1–10)</label>
+        <div class="range-row">
+          <input id="difficulty" type="range" min="1" max="10" value="3" />
+          <span id="diffVal" class="chip">3</span>
+        </div>
+      </div>
+      <div class="group">
+        <label>Timer / Q (0=off)</label>
+        <div class="range-row">
+          <input id="timerSec" type="range" min="0" max="60" value="10" />
+          <span id="timerVal" class="chip">10s</span>
+        </div>
+      </div>
+      <div class="group">
+        <label>Rounds per player</label>
+        <select id="rounds"><option>5</option><option selected>10</option><option>15</option><option>20</option></select>
+      </div>
+      <div class="group">
+        <label>Players</label>
+        <select id="players">
+          <option value="1" selected>Single</option>
+          <option value="2">Head-to-Head (2)</option>
+        </select>
+      </div>
+
+      <!-- Names + avatar previews -->
+      <div class="group names">
+        <label>Names</label>
+        <div class="names-row">
+          <div class="namebox">
+            <img id="nameAvatarP1" class="name-avatar" src="players/p1.png" alt="P1" onerror="this.style.visibility='hidden'">
+            <input id="nameP1" type="text" placeholder="Player 1" value="Player 1" />
+          </div>
+          <div class="namebox">
+            <img id="nameAvatarP2" class="name-avatar" src="players/p2.png" alt="P2" onerror="this.style.visibility='hidden'">
+            <input id="nameP2" type="text" placeholder="Player 2" value="Player 2" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Audio controls -->
+      <div class="group">
+        <label>Music</label>
+        <div class="range-row">
+          <select id="musicOn"><option value="1">On</option><option value="0" selected>Off</option></select>
+          <span class="chip">Vol</span>
+        </div>
+        <input id="musicVol" type="range" min="0" max="1" step="0.01" value="0.35" />
+      </div>
+      <div class="group">
+        <label>Sound FX</label>
+        <div class="range-row">
+          <select id="soundOn"><option value="1" selected>On</option><option value="0">Off</option></select>
+          <span class="chip">Vol</span>
+        </div>
+        <input id="volume" type="range" min="0" max="1" step="0.01" value="0.5" />
+      </div>
+
+      <div class="group">
+        <label>&nbsp;</label>
+        <span class="chip">Start turn: Space/Enter • Submit: Enter • Skip: S</span>
+      </div>
+    </section>
+
+    <section class="grid" style="margin-top:16px">
+      <div class="card">
+        <div class="problem" id="problem">
+          <div class="turn" id="turnBanner">—</div>
+          <div id="formula" class="formula">—</div>
+
+          <!-- single player -->
+          <div id="singleRows" class="answer-rows" style="display:grid">
+            <div class="row">
+              <img id="soloAvatar" class="avatar hidden" alt="">
+              <input id="answer1" class="p1" type="text" inputmode="numeric" placeholder="Your answer…" disabled />
+              <button id="btnSubmit1" class="btn">Submit ⏎</button>
+            </div>
+          </div>
+
+          <!-- multiplayer (only active row shown) -->
+          <div id="multiRows" class="answer-rows" style="display:none">
+            <div class="row" id="rowP1">
+              <img id="avatarP1" class="avatar" src="players/p1.png" alt="P1" onerror="this.style.display='none'">
+              <input id="answerP1" class="p1" type="text" inputmode="numeric" placeholder="P1…" disabled />
+              <button id="btnSubmitP1" class="btn">Submit</button>
+            </div>
+            <div class="row" id="rowP2">
+              <img id="avatarP2" class="avatar" src="players/p2.png" alt="P2" onerror="this.style.display='none'">
+              <input id="answerP2" class="p2" type="text" inputmode="numeric" placeholder="P2…" disabled />
+              <button id="btnSubmitP2" class="btn">Submit</button>
+            </div>
+          </div>
+
+          <div id="feedback" class="feedback">&nbsp;</div>
+        </div>
+
+        <!-- global stats -->
+        <div class="stats">
+          <div class="stat"><label>Total Correct</label><b id="statGood">0</b></div>
+          <div class="stat"><label>Total Incorrect</label><b id="statBad">0</b></div>
+          <div class="stat"><label>Accuracy</label><b id="statAcc">—</b></div>
+        </div>
+        <!-- per-player stats -->
+        <div id="versus" class="stats" style="display:none">
+          <div class="stat"><label id="lblP1">P1 ✓ / ✗</label><b id="p1Score">0 / 0</b></div>
+          <div class="stat"><label id="lblP2">P2 ✓ / ✗</label><b id="p2Score">0 / 0</b></div>
+          <div class="stat"><label>Lead</label><b id="lead">—</b></div>
+        </div>
+
+        <footer>Shortcuts: Start turn (Space/Enter) • Submit (Enter) • Esc clear • S skip</footer>
+      </div>
+
+      <div class="card">
+        <div class="timer" id="timer">Timer: off</div>
+        <div class="stat" style="margin-top:12px"><label>Question</label><b id="qIndex">0</b></div>
+        <!-- Removed Streak, Best Streak, Last result -->
+      </div>
+    </section>
+  </div>
+
+  <!-- result overlays -->
+  <div id="fxGood" class="fx-overlay"><img id="fxGoodImg" alt="Correct"></div>
+  <div id="fxBad"  class="fx-overlay"><img id="fxBadImg"  alt="Incorrect"></div>
+
+  <!-- Turn overlay -->
+  <div id="turnOverlay" class="turn-overlay">
+    <div class="turn-card">
+      <img id="turnAvatar" class="turn-avatar" alt="">
+      <h2 id="turnText">Next up: —</h2>
+      <button id="btnBeginTurn" class="btn good">Start turn ▶</button>
+      <div class="chip">or press Space / Enter</div>
+    </div>
+  </div>
+
+  <!-- Final Result overlay -->
+  <div id="finalOverlay" class="final-overlay" aria-hidden="true">
+    <div id="finalCard" class="final-card">
+      <h2>Session complete</h2>
+      <div id="finalScore" class="final-score">—</div>
+      <button id="finalClose" class="btn">Close ✕</button>
+    </div>
+  </div>
+
+  <!-- Audio elements -->
+  <audio id="bgm" src="sounds/bgm.mp3" loop preload="auto"></audio>
+  <audio id="sndCorrect" src="sounds/correct.mp3" preload="auto"></audio>
+  <audio id="sndWrong"   src="sounds/wrong.mp3"   preload="auto"></audio>
+
 <script>
 (function(){
   // ===== DOM =====
@@ -63,7 +310,7 @@
   var turn='p1';
   var awaitingTurnStart=false;
 
-  // ===== preload images =====
+  // ===== preload & filter available images =====
   function filterExisting(candidates, cb){
     var out=[], i=0;
     function tryNext(){
@@ -81,7 +328,7 @@
   function updateMusic(){
     BGM.volume=+elMusicVol.value;
     if(elMusicOn.value==="1"){
-      BGM.play().catch(function(){});
+      BGM.play().catch(function(){ /* user gesture will come on Start */ });
     }else{
       BGM.pause(); BGM.currentTime=0;
     }
@@ -149,6 +396,7 @@
     var acc=accuracy(); elStatAcc.textContent=acc==='—'?'—':(acc+'%');
   }
 
+  // banner + active row
   function activeName(){ return turn==='p1' ? (elNameP1.value||'Player 1') : (elNameP2.value||'Player 2'); }
   function updateTurnBanner(){ elTurn.textContent = elPlayers.value==='2' ? ('Turn: '+activeName()) : '—'; }
   function setRowVis(){
@@ -176,7 +424,7 @@
   elNameP1.addEventListener('input',uiMode);
   elNameP2.addEventListener('input',uiMode);
 
-  // ===== Turn overlay =====
+  // ===== Turn overlay (hand-off) =====
   function showTurnOverlay(){
     if(elPlayers.value!=='2') return;
     overlayText.textContent = 'Next up: ' + activeName();
@@ -187,7 +435,6 @@
     awaitingTurnStart = true;
   }
   function hideTurnOverlay(){ overlay.classList.remove('show'); awaitingTurnStart=false; }
-
   btnBeginTurn.addEventListener('click', function(){
     hideTurnOverlay();
     if(elMusicOn.value==="1"){ try{ BGM.volume=+elMusicVol.value; BGM.play(); }catch(e){} }
@@ -196,13 +443,6 @@
     qCount = 0;
     elQIndex.textContent = '0';
 
-    // 🔧 RESET the global totals shown for the new player's turn
-    if (elPlayers.value === '2') {
-      good = 0;
-      bad  = 0;
-      updateStats();
-    }
-
     setRowVis();
     next(true);
   });
@@ -210,7 +450,194 @@
     if(awaitingTurnStart && (e.key===' ' || e.key==='Enter')){ e.preventDefault(); btnBeginTurn.click(); }
   });
 
-  /* rest of your JS unchanged ... */
+  // ===== Core flow (rounds per player) =====
+  function everyonePlayed(){ var r=parseInt(elRounds.value,10); return (p1.played>=r && p2.played>=r); }
+  function sessionFinishedFor(id){ var r=parseInt(elRounds.value,10); return (id==='p1'?p1:p2).played>=r; }
+
+  function start(){
+    if(running) return;
+    if(AC && AC.state==='suspended'){ AC.resume(); }
+    running=true; qCount=0; good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
+    elStart.textContent='Running…'; elStart.disabled=true;
+
+    if(elPlayers.value==="2"){
+      turn = (Math.random()<0.5)?'p1':'p2';
+      updateTurnBanner();
+      // ensure counter shows 0 before first player's first question
+      qCount = 0; elQIndex.textContent = '0';
+      showTurnOverlay();
+    }else{
+      elAns1.disabled=false; next(true); elAns1.focus();
+      if(elMusicOn.value==="1"){ try{ BGM.play(); }catch(e){} }
+    }
+    updateStats(); uiMode();
+  }
+  function reset(){
+    stopTimer(); running=false; current=null; qCount=good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
+    elStart.textContent='Start ▶'; elStart.disabled=false;
+    [elAns1,elP1,elP2].forEach(function(i){i.value=''; i.disabled=true;});
+    elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
+    elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
+    elQIndex.textContent='0';
+    overlay.classList.remove('show'); awaitingTurnStart=false;
+    try{ BGM.pause(); BGM.currentTime=0; }catch(e){}
+  }
+
+  function next(initial){
+    if(awaitingTurnStart) return;
+    stopTimer();
+
+    if(elPlayers.value==='2' && !initial){
+      if(sessionFinishedFor(turn)){
+        if(everyonePlayed()) return finish();
+        turn = (turn==='p1') ? 'p2' : 'p1';
+        updateTurnBanner();
+        showTurnOverlay();
+        return;
+      }
+    }
+
+    qCount++;
+    var mode=pickOp(elMode.value), L=+elDiff.value;
+    current=ops[mode].gen(L);
+    elFormula.textContent=current.text+' = ?';
+    elQIndex.textContent=qCount;
+    [elAns1,elP1,elP2].forEach(function(i){i.value='';});
+    elFeedback.textContent=' '; elFeedback.className='feedback';
+    startTimerIfNeeded();
+  }
+
+  function finish(){
+    stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
+
+    var scoreLine = '';
+    if(elPlayers.value==='2'){
+      var p1Score=p1.ok, p2Score=p2.ok;
+      var n1=(elNameP1.value||'Player 1'), n2=(elNameP2.value||'Player 2');
+      var winner;
+      if(p1Score>p2Score) winner = n1 + ' wins!';
+      else if(p2Score>p1Score) winner = n2 + ' wins!';
+      else {
+        var t1=p1.no,t2=p2.no;
+        winner = (t1<t2 ? (n1+' wins by fewer mistakes!') :
+                 (t2<t1 ? (n2+' wins by fewer mistakes!') : 'It’s a tie!'));
+      }
+      scoreLine = winner + ' ('+n1+' '+p1.ok+'/'+p1.no+' vs '+n2+' '+p2.ok+'/'+p2.no+')';
+    }else{
+      var acc=accuracy();
+      scoreLine = good+' correct, '+bad+' wrong, accuracy '+(acc==='—'?'—':acc+'%');
+    }
+
+    // clear small footer; rely entirely on modal
+    elFeedback.textContent=' ';
+    elFeedback.className='feedback';
+
+    try{ if(BGM){ BGM.pause(); } }catch(e){}
+    showFinal(scoreLine);
+  }
+
+  // ===== Answer submit =====
+  function consumeRound(){ if(elPlayers.value==='2'){ (turn==='p1'?p1:p2).played++; } }
+  function leadText(){ var d=p1.ok-p2.ok; return d===0?'Tied':(d>0?(elNameP1.value||'P1')+' +'+d:(elNameP2.value||'P2')+' +'+(-d)); }
+
+  function handleSubmit(val, who){
+    if(awaitingTurnStart) return;
+    if(!running || !current || val==='') return;
+
+    stopTimer();
+
+    var num = Number(val);
+    var correct = (num === current.answer);
+
+    if (correct) {
+      good++;
+      if (who === 'p1'){ p1.ok++; elP1Score.textContent = p1.ok + ' / ' + p1.no; elLead.textContent = leadText(); }
+      if (who === 'p2'){ p2.ok++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
+      elFeedback.textContent = (who==='solo' ? 'Correct!' : (activeName() + ' scores!'));
+      elFeedback.className = 'feedback ok';
+      sfx.correct(); flash(fxGood, GOOD_IMGS, 400);
+
+      consumeRound();
+      updateStats();
+      setTimeout(function(){ next(); }, 180);
+      return;
+    }
+
+    // WRONG → mark + advance
+    bad++;
+    if (who === 'p1'){ p1.no++; elP1Score.textContent = p1.ok + ' / ' + p1.no; elLead.textContent = leadText(); }
+    if (who === 'p2'){ p2.no++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
+    elFeedback.textContent = '✗ Wrong';
+    elFeedback.className = 'feedback no';
+    sfx.wrong(); flash(fxBad, BAD_IMGS, 450);
+
+    consumeRound();
+    updateStats();
+    setTimeout(function(){ next(); }, 200);
+  }
+
+  function skip(){
+    if(awaitingTurnStart || !running) return;
+    stopTimer();
+    bad++;
+    elFeedback.textContent='⏭ Skipped';
+    elFeedback.className='feedback no';
+    updateStats();
+    flash(fxBad, BAD_IMGS, 300);
+    consumeRound();
+    next();
+  }
+
+  // ===== Timer =====
+  function startTimerIfNeeded(){
+    var sec=+elTimerSec.value;
+    if(!sec){ elTimer.textContent='Timer: off'; return; }
+    remaining=sec; renderTimer(); stopTimer();
+    tick=setInterval(function(){
+      remaining--;
+      if(remaining>0){ sfx.tick(); renderTimer(); return; }
+      bad++; updateStats();
+      elFeedback.textContent='Time out — next!'; elFeedback.className='feedback no';
+      sfx.timeout(); flash(fxBad,BAD_IMGS,700);
+      consumeRound(); next();
+    },1000);
+  }
+  function stopTimer(){ if(tick){ clearInterval(tick); tick=null; } }
+  function renderTimer(){
+    var warn=remaining<=Math.max(3,Math.floor(+elTimerSec.value*0.25));
+    elTimer.textContent='⏱ '+remaining+'s'; elTimer.style.color=warn?'var(--warn)':'var(--ink)';
+  }
+
+  // ===== Events =====
+  elDiff.addEventListener('input',function(){ elDiffVal.textContent=elDiff.value; });
+  elTimerSec.addEventListener('input',function(){ elTimerVal.textContent=elTimerSec.value+'s'; });
+
+  elStart.addEventListener('click',start);
+  elReset.addEventListener('click',reset);
+
+  elBtn1.addEventListener('click',function(){ handleSubmit(elAns1.value.trim(),'solo'); });
+  elBtnP1.addEventListener('click',function(){ if(elPlayers.value==='2' && turn==='p1') handleSubmit(elP1.value.trim(),'p1'); });
+  elBtnP2.addEventListener('click',function(){ if(elPlayers.value==='2' && turn==='p2') handleSubmit(elP2.value.trim(),'p2'); });
+
+  elAns1.addEventListener('keydown',function(e){ if(e.key==='Enter')handleSubmit(elAns1.value.trim(),'solo'); if(e.key==='Escape')elAns1.value=''; });
+  elP1  .addEventListener('keydown',function(e){ if(e.key==='Enter'&&turn==='p1')handleSubmit(elP1.value.trim(),'p1'); if(e.key==='Escape')elP1.value=''; });
+  elP2  .addEventListener('keydown',function(e){ if(e.key==='Enter'&&turn==='p2')handleSubmit(elP2.value.trim(),'p2'); if(e.key==='Escape')elP2.value=''; });
+
+  window.addEventListener('keydown',function(e){
+    if(e.key && e.key.toLowerCase()==='s') skip();
+  });
+
+  // numeric-only
+  [elAns1,elP1,elP2].forEach(function(inp){
+    inp.addEventListener('input',function(){ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); });
+  });
+
+  // init
+  updateMusic();
+  fxGoodImg.src = GOOD_CANDIDATES[0];
+  fxBadImg.src  = BAD_CANDIDATES[0];
+
+  reset(); uiMode();
 })();
 </script>
 </body>
