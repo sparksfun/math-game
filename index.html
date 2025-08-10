@@ -517,43 +517,60 @@ body { place-items: start stretch; }
   function consumeRound(){ if(elPlayers.value==='2'){ (turn==='p1'?p1:p2).played++; } }
   function leadText(){ var d=p1.ok-p2.ok; return d===0?'Tied':(d>0?(elNameP1.value||'P1')+' +'+d:(elNameP2.value||'P2')+' +'+(-d)); }
 
-  function handleSubmit(val, who){
-    if(awaitingTurnStart) return;
-    if(!running||!current||val==='') return;
-    var num=Number(val), correct=(num===current.answer);
-    if(correct){
-      good++; streak++; bestStreak=Math.max(bestStreak,streak);
-      if(who==='p1'){ p1.ok++; elP1Score.textContent=p1.ok+' / '+p1.no; elLead.textContent=leadText(); }
-      if(who==='p2'){ p2.ok++; elP2Score.textContent=p2.ok+' / '+p2.no; elLead.textContent=leadText(); }
-      elFeedback.textContent=(who==='solo'?'Correct!':(activeName()+' scores!')); elFeedback.className='feedback ok';
-      elLast.textContent='✓'; elLast.style.color='var(--good)';
-      sfx.correct(); flash(fxGood,GOOD_IMGS,500);
-      consumeRound(); setTimeout(function(){ next(); },180);
-    } else {
-  bad++;
-  streak = 0;
-  if (who === 'p1') { p1.no++; elP1Score.textContent = p1.ok + ' / ' + p1.no; }
-  if (who === 'p2') { p2.no++; elP2Score.textContent = p2.ok + ' / ' + p2.no; }
+ function handleSubmit(val, who){
+  if(awaitingTurnStart) return;
+  if(!running || !current || val==='') return;
+
+  // stop countdown immediately on any submission
+  stopTimer();
+
+  var num = Number(val);
+  var correct = (num === current.answer);
+
+  if (correct) {
+    good++; streak++; bestStreak = Math.max(bestStreak, streak);
+    if (who === 'p1'){ p1.ok++; elP1Score.textContent = p1.ok + ' / ' + p1.no; elLead.textContent = leadText(); }
+    if (who === 'p2'){ p2.ok++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
+    elFeedback.textContent = (who==='solo' ? 'Correct!' : (activeName() + ' scores!'));
+    elFeedback.className = 'feedback ok';
+    elLast.textContent = '✓'; elLast.style.color = 'var(--good)';
+    sfx.correct(); flash(fxGood, GOOD_IMGS, 400);
+
+    consumeRound();
+    updateStats();
+
+    // short pause so the flash is visible
+    setTimeout(function(){ next(); }, 180);
+    return;
+  }
+
+  // WRONG → mark + advance
+  bad++; streak = 0;
+  if (who === 'p1'){ p1.no++; elP1Score.textContent = p1.ok + ' / ' + p1.no; elLead.textContent = leadText(); }
+  if (who === 'p2'){ p2.no++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
   elFeedback.textContent = '✗ Wrong';
   elFeedback.className = 'feedback no';
-  elLast.textContent = '✗';
-  elLast.style.color = 'var(--bad)';
-  sfx.wrong();
-  flash(fxBad, BAD_IMGS, 700);
+  elLast.textContent = '✗'; elLast.style.color = 'var(--bad)';
+  sfx.wrong(); flash(fxBad, BAD_IMGS, 450);
 
   consumeRound();
-  setTimeout(function () { next(); }, 500); // short delay so flash shows
+  updateStats();
+
+  // advance immediately (small delay to show red flash)
+  setTimeout(function(){ next(); }, 200);
 }
 
-    }
-    updateStats();
-  }
+function skip(){
+  if(awaitingTurnStart || !running) return;
+  stopTimer();                 // stop countdown immediately
+  bad++; streak = 0;
+  elLast.textContent = '⏭'; elLast.style.color = 'var(--warn)';
+  updateStats();
+  flash(fxBad, BAD_IMGS, 300);
+  consumeRound();
+  next();
+}
 
-  function skip(){
-    if(awaitingTurnStart||!running) return;
-    bad++; streak=0; elLast.textContent='⏭'; elLast.style.color='var(--warn)'; updateStats();
-    flash(fxBad,BAD_IMGS,700); consumeRound(); next();
-  }
 
   // ===== Timer =====
   function startTimerIfNeeded(){
