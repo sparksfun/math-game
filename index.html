@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Math Sprint — Head-to-Head</title>
+<title>Math Sprint — Head-to-Head (Rounds)</title>
 <style>
   :root{--bg:#0f1220;--panel:#161a2e;--ink:#e9ecf1;--muted:#aab3c5;--good:#38d39f;--bad:#ff6b6b;--warn:#ffb020;--chip:#232843}
   *{box-sizing:border-box} html,body{height:100%}
@@ -14,6 +14,9 @@
   .controls{display:grid;gap:10px;padding:14px;background:color-mix(in oklab,var(--panel),#000 6%);border:1px solid #262b4a;border-radius:14px;grid-template-columns:repeat(8,minmax(0,1fr));align-items:end}
   .group{display:grid;gap:6px} label{font-size:12px;color:var(--muted);letter-spacing:.2px}
   select,input[type="range"],input[type="text"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2c335a;background:#0e1330;color:var(--ink);outline:none}
+  /* Names: make wide and readable */
+  .group.names{grid-column:span 3}
+  .names .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .range-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
   .chip{background:var(--chip);border:1px solid #2b3155;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
   .btn{appearance:none;border:1px solid #2c335a;background:linear-gradient(180deg,#1e2550,#141a3b);color:#fff;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;letter-spacing:.2px;transition:transform .03s ease,filter .15s ease,border-color .15s ease}
@@ -23,6 +26,7 @@
   .card{background:var(--panel);border:1px solid #262b4a;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
   .problem{display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
   .formula{font-size:clamp(36px,6vw,64px);font-weight:800;letter-spacing:1px}
+  .turn{font-weight:700;color:#a7b4ff}
   .answer-rows{display:grid;gap:10px;width:min(560px,96%)}
   .row{display:grid;grid-template-columns:1fr auto;gap:10px}
   .row input{padding:12px 14px;border-radius:12px;border:1px solid #2c335a;outline:none;background:#0e1330;color:#fff;font-size:clamp(18px,2.2vw,22px);text-align:center;letter-spacing:.5px}
@@ -75,8 +79,8 @@
         </div>
       </div>
       <div class="group">
-        <label>Session length</label>
-        <select id="maxQs"><option>10</option><option selected>20</option><option>30</option><option>50</option><option>∞</option></select>
+        <label>Rounds per player</label>
+        <select id="rounds"><option>5</option><option selected>10</option><option>15</option><option>20</option></select>
       </div>
       <div class="group">
         <label>Players</label>
@@ -85,9 +89,9 @@
           <option value="2">Head-to-Head (2)</option>
         </select>
       </div>
-      <div class="group">
+      <div class="group names">
         <label>Names</label>
-        <div class="row" style="grid-template-columns:1fr 1fr;gap:8px">
+        <div class="names row">
           <input id="nameP1" type="text" placeholder="Player 1" value="Player 1" />
           <input id="nameP2" type="text" placeholder="Player 2" value="Player 2" />
         </div>
@@ -109,6 +113,7 @@
     <section class="grid" style="margin-top:16px">
       <div class="card">
         <div class="problem" id="problem">
+          <div class="turn" id="turnBanner">—</div>
           <div id="formula" class="formula">—</div>
 
           <!-- single player row -->
@@ -169,9 +174,11 @@
   // ------- DOM -------
   const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
   const elMode=$('#mode'), elDiff=$('#difficulty'), elDiffVal=$('#diffVal');
-  const elTimerSec=$('#timerSec'), elTimerVal=$('#timerVal'), elMaxQs=$('#maxQs');
-  const elPlayers=$('#players'), elNameP1=$('#nameP1'), elNameP2=$('#nameP2');
+  const elTimerSec=$('#timerSec'), elTimerVal=$('#timerVal');
+  const elRounds=$('#rounds'), elPlayers=$('#players');
+  const elNameP1=$('#nameP1'), elNameP2=$('#nameP2');
   const elSoundOn=$('#soundOn'), elVol=$('#volume');
+  const elTurn=$('#turnBanner');
 
   const elStart=$('#btnStart'), elReset=$('#btnReset');
   const elSingle=$('#singleRows'), elMulti=$('#multiRows');
@@ -192,15 +199,15 @@
   const BAD_IMGS =["images/wrong1.webp"];
   let running=false, current=null, qCount=0;
   let good=0,bad=0,streak=0,bestStreak=0;
-  let p1={ok:0,no:0}, p2={ok:0,no:0};
+  let p1={ok:0,no:0,played:0}, p2={ok:0,no:0,played:0};
   let tick=null, remaining=0;
+  let turn='p1'; // current player in H2H
 
   // ------- Sound (WebAudio) -------
   const AC=new (window.AudioContext||window.webkitAudioContext)();
   const master=AC.createGain(); master.connect(AC.destination); master.gain.value=+elVol.value;
   const soundOn=()=>elSoundOn.value==="1";
   elVol.addEventListener('input',()=>master.gain.value=+elVol.value);
-
   function tone(freq,dur=0.12,type='sine',when=0,vol=0.3){
     if(!soundOn()) return;
     const o=AC.createOscillator(), g=AC.createGain();
@@ -211,12 +218,10 @@
     g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
     o.stop(t+dur+0.02);
   }
-  const sfx={
-    correct(){ [523,659,784].forEach((f,i)=>tone(f,0.10,'triangle',i*0.08,0.25)); },
-    wrong(){ tone(200,0.25,'sawtooth',0,0.35); tone(140,0.22,'sawtooth',0.04,0.28); },
-    tick(){ tone(900,0.03,'square',0,0.12); },
-    timeout(){ [523,392,330].forEach((f,i)=>tone(f,0.12,'sine',i*0.09,0.22)); }
-  };
+  const sfx={ correct(){[523,659,784].forEach((f,i)=>tone(f,0.10,'triangle',i*0.08,0.25));},
+              wrong(){tone(200,0.25,'sawtooth',0,0.35);tone(140,0.22,'sawtooth',0.04,0.28);},
+              tick(){tone(900,0.03,'square',0,0.12);},
+              timeout(){[523,392,330].forEach((f,i)=>tone(f,0.12,'sine',i*0.09,0.22));}};
 
   // ------- Math -------
   const clamp=(n,a,b)=>Math.min(Math.max(n,a),b);
@@ -237,12 +242,14 @@
     div:{gen:L=>{const r=rangeFor('div',L),b=rnd(r.min,r.max),q=rnd(r.min,r.max),a=b*q;return {text:`${a} ÷ ${b}`,answer:q}}}
   };
 
-  // ------- Images overlay -------
+  // ------- Helpers -------
   function flash(el,list,hold=600){
     const pick=list[rnd(0,list.length-1)];
     (el===fxGood?fxGoodImg:fxBadImg).src=pick;
     el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),hold);
   }
+  function activeName(){ return turn==='p1' ? (elNameP1.value||'Player 1') : (elNameP2.value||'Player 2'); }
+  function updateTurnBanner(){ elTurn.textContent = elPlayers.value==='2' ? `Turn: ${activeName()}` : '—'; }
 
   // ------- UI mode -------
   function uiMode(){
@@ -250,41 +257,70 @@
     elSingle.style.display = two ? 'none':'grid';
     elMulti.style.display  = two ? 'grid':'none';
     elVersus.style.display = two ? 'grid':'none';
-    // update labels with names
-    elLblP1.textContent = (elNameP1.value||'Player 1') + ' ✓ / ✗';
-    elLblP2.textContent = (elNameP2.value||'Player 2') + ' ✓ / ✗';
-    // placeholders
-    $('#answerP1').placeholder = (elNameP1.value||'Player 1');
-    $('#answerP2').placeholder = (elNameP2.value||'Player 2');
+    $('#answerP1').placeholder = elNameP1.value||'Player 1';
+    $('#answerP2').placeholder = elNameP2.value||'Player 2';
+    elLblP1.textContent=(elNameP1.value||'Player 1')+' ✓ / ✗';
+    elLblP2.textContent=(elNameP2.value||'Player 2')+' ✓ / ✗';
+    updateTurnBanner();
   }
   elPlayers.addEventListener('change', uiMode);
   elNameP1.addEventListener('input', uiMode);
   elNameP2.addEventListener('input', uiMode);
 
-  // ------- Core flow (kept like original) -------
+  // ------- Core flow -------
   function start(){
     if(running) return;
     AC.resume?.();
-    running=true; qCount=0; good=bad=0; streak=bestStreak=0; p1={ok:0,no:0}; p2={ok:0,no:0};
+    running=true; qCount=0; good=bad=0; streak=bestStreak=0;
+    p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     elStart.textContent='Running…'; elStart.disabled=true;
-    (elPlayers.value==="2"?[$('#answerP1'),$('#answerP2')]:[$('#answer1')]).forEach(i=>i.disabled=false);
-    next(true); (elPlayers.value==="2"?$('#answerP1'):$('#answer1')).focus();
+
+    // Randomize who starts
+    turn = Math.random()<0.5 ? 'p1' : 'p2';
+    enableInputsForTurn();
+    next(true);
     updateStats(); uiMode();
   }
   function reset(){
-    stopTimer(); running=false; current=null; qCount=good=bad=streak=bestStreak=0; p1={ok:0,no:0}; p2={ok:0,no:0};
+    stopTimer(); running=false; current=null; qCount=good=bad=streak=bestStreak=0;
+    p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     elStart.textContent='Start ▶'; elStart.disabled=false;
     [elAns1,elP1,elP2].forEach(i=>{i.value=''; i.disabled=true;});
     elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
-    updateStats(); elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
+    elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
+    updateStats(); updateTurnBanner();
   }
-  function sessionLimitReached(){
-    const max=elMaxQs.value==='∞'?Infinity:parseInt(elMaxQs.value,10);
-    return (good+bad)>=max;
+
+  function enableInputsForTurn(){
+    const two = elPlayers.value==='2';
+    if(!two){ elAns1.disabled=false; elP1.disabled=elP2.disabled=true; return;}
+    elP1.disabled = !(turn==='p1');
+    elP2.disabled = !(turn==='p2');
+    (turn==='p1'?elP1:elP2).focus();
   }
+
+  function sessionFinishedFor(turnId){
+    const limit = parseInt(elRounds.value,10);
+    return (turnId==='p1'?p1.played:p2.played) >= limit;
+  }
+
+  function everyoneFinished(){
+    const limit = parseInt(elRounds.value,10);
+    return p1.played>=limit && p2.played>=limit;
+  }
+
   function next(initial=false){
-    stopTimer(); // ensure old timer cleared
-    if(!initial && sessionLimitReached()) return finish();
+    stopTimer();
+    if(elPlayers.value==='2'){
+      // If current player finished their rounds, switch or finish
+      if(sessionFinishedFor(turn)){
+        if(everyoneFinished()){ return finish(); }
+        turn = (turn==='p1')?'p2':'p1';
+        enableInputsForTurn();
+        updateTurnBanner();
+      }
+    }
+    if(!initial && elPlayers.value!=='2'){ /* single mode used session length earlier; keeping simple */ }
     qCount++;
     const mode=pickOp(elMode.value), L=+elDiff.value;
     current=ops[mode].gen(L);
@@ -292,27 +328,45 @@
     elQIndex.textContent=qCount;
     [elAns1,elP1,elP2].forEach(i=>i.value='');
     elFeedback.textContent=' '; elFeedback.className='feedback';
-    startTimerIfNeeded(); // new timer for new question
+    startTimerIfNeeded();
   }
+
   function finish(){
     stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
     const acc=accuracy();
-    elFeedback.textContent=`Session complete — ${good} correct, ${bad} wrong, accuracy ${acc==='—'?'—':acc}%`;
-    elFeedback.className='feedback '+(good>=bad?'ok':'no');
+    // winner by correct; tie-break by fewer wrong
+    const p1Score=p1.ok, p2Score=p2.ok;
+    let verdict='Session complete — ';
+    if(elPlayers.value==='2'){
+      if(p1Score>p2Score) verdict+=`${elNameP1.value||'Player 1'} wins!`;
+      else if(p2Score>p1Score) verdict+=`${elNameP2.value||'Player 2'} wins!`;
+      else {
+        const t1=p1.no, t2=p2.no;
+        verdict+=(t1<t2?`${elNameP1.value||'Player 1'} wins by fewer mistakes!`:
+                  t2<t1?`${elNameP2.value||'Player 2'} wins by fewer mistakes!`:'It’s a tie!');
+      }
+      verdict+=`  (${elNameP1.value||'P1'} ${p1.ok}/${p1.no} vs ${elNameP2.value||'P2'} ${p2.ok}/${p2.no})`;
+    } else {
+      verdict+=`${good} correct, ${bad} wrong, accuracy ${acc==='—'?'—':acc}%`;
+    }
+    elFeedback.textContent=verdict;
+    elFeedback.className='feedback ' + (good>=bad ? 'ok':'no');
   }
 
   // ------- Answer submit -------
+  function consumeRound(){ if(elPlayers.value==='2'){ if(turn==='p1') p1.played++; else p2.played++; } }
   function handleSubmit(val, who){ // 'solo'|'p1'|'p2'
     if(!running||!current||val==='') return;
     const num=Number(val);
-    if(num===current.answer){
+    const correct = (num===current.answer);
+    if(correct){
       good++; streak++; bestStreak=Math.max(bestStreak,streak);
       if(who==='p1'){ p1.ok++; elP1Score.textContent=`${p1.ok} / ${p1.no}`; elLead.textContent=leadText(); }
       if(who==='p2'){ p2.ok++; elP2Score.textContent=`${p2.ok} / ${p2.no}`; elLead.textContent=leadText(); }
-      elFeedback.textContent=(who==='solo'?'Correct!':((who==='p1'?elNameP1.value||'Player 1':elNameP2.value||'Player 2')+' wins!'));
-      elFeedback.className='feedback ok';
+      elFeedback.textContent=(who==='solo'?'Correct!':(activeName()+' scores!')); elFeedback.className='feedback ok';
       elLast.textContent='✓'; elLast.style.color='var(--good)';
       sfx.correct(); flash(fxGood,GOOD_IMGS,500);
+      consumeRound();
       setTimeout(()=>next(),180);
     } else {
       bad++; streak=0;
@@ -321,18 +375,20 @@
       elFeedback.textContent='Try again'; elFeedback.className='feedback no';
       elLast.textContent='✗'; elLast.style.color='var(--bad)';
       sfx.wrong(); flash(fxBad,BAD_IMGS,700);
-      // stay on same question
+      // stay on same question until correct or timeout/skip
     }
     updateStats();
   }
-  function leadText(){ const d=p1.ok-p2.ok; return d===0?'Tied':(d>0?`${elNameP1.value||'Player 1'} +${d}`:`${elNameP2.value||'Player 2'} +${-d}`); }
+  function leadText(){ const d=p1.ok-p2.ok; return d===0?'Tied':(d>0?`${elNameP1.value||'P1'} +${d}`:`${elNameP2.value||'P2'} +${-d}`); }
   function skip(){
     if(!running) return;
     bad++; streak=0; elLast.textContent='⏭'; elLast.style.color='var(--warn)'; updateStats();
-    flash(fxBad,BAD_IMGS,700); next();
+    flash(fxBad,BAD_IMGS,700);
+    consumeRound();
+    next();
   }
 
-  // ------- Timer (fixed: timeout → next + reset) -------
+  // ------- Timer (timeout → next + reset) -------
   function startTimerIfNeeded(){
     const sec=+elTimerSec.value;
     if(!sec){ elTimer.textContent='Timer: off'; return; }
@@ -345,7 +401,7 @@
       elFeedback.textContent='Time out — next!'; elFeedback.className='feedback no';
       elLast.textContent='⏲'; elLast.style.color='var(--bad)';
       sfx.timeout(); flash(fxBad,BAD_IMGS,700);
-      // move on and reset timer cleanly
+      consumeRound();
       next();
     },1000);
   }
@@ -367,13 +423,14 @@
   elDiff.addEventListener('input',()=>elDiffVal.textContent=elDiff.value);
   elTimerSec.addEventListener('input',()=>elTimerVal.textContent=`${elTimerSec.value}s`);
   elStart.addEventListener('click',start); elReset.addEventListener('click',reset);
+
   elBtn1.addEventListener('click',()=>handleSubmit(elAns1.value.trim(),'solo'));
-  elBtnP1.addEventListener('click',()=>handleSubmit(elP1.value.trim(),'p1'));
-  elBtnP2.addEventListener('click',()=>handleSubmit(elP2.value.trim(),'p2'));
+  elBtnP1.addEventListener('click',()=>turn==='p1'&&handleSubmit(elP1.value.trim(),'p1'));
+  elBtnP2.addEventListener('click',()=>turn==='p2'&&handleSubmit(elP2.value.trim(),'p2'));
 
   elAns1.addEventListener('keydown',e=>{ if(e.key==='Enter')handleSubmit(elAns1.value.trim(),'solo'); if(e.key==='Escape')elAns1.value=''; });
-  elP1  .addEventListener('keydown',e=>{ if(e.key==='Enter')handleSubmit(elP1.value.trim(),'p1');   if(e.key==='Escape')elP1.value='';   });
-  elP2  .addEventListener('keydown',e=>{ if(e.key==='Enter')handleSubmit(elP2.value.trim(),'p2');   if(e.key==='Escape')elP2.value='';   });
+  elP1  .addEventListener('keydown',e=>{ if(e.key==='Enter'&&turn==='p1')handleSubmit(elP1.value.trim(),'p1'); if(e.key==='Escape')elP1.value=''; });
+  elP2  .addEventListener('keydown',e=>{ if(e.key==='Enter'&&turn==='p2')handleSubmit(elP2.value.trim(),'p2'); if(e.key==='Escape')elP2.value=''; });
   window.addEventListener('keydown',e=>{ if(e.key.toLowerCase()==='s') skip(); });
 
   // numeric-only
@@ -381,7 +438,7 @@
     inp.addEventListener('input',()=>inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''));
   });
 
-  // preload overlays (fix: ensure images show)
+  // preload overlays
   fxGoodImg.src=GOOD_IMGS[0]; fxBadImg.src=BAD_IMGS[0];
 
   // init
