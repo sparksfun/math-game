@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -117,8 +117,6 @@
         </select>
       </div>
 
-      <!-- (Name inputs removed; names are fixed: Aliah & Aliana) -->
-
       <!-- Audio controls -->
       <div class="group">
         <label>Music</label>
@@ -216,15 +214,30 @@
   </div>
 
   <!-- Audio elements -->
-  <audio id="bgm" src="sounds/bgm.mp3" loop preload="auto"></audio>
+  <audio id="bgm" src="" loop preload="auto"></audio>
   <audio id="sndCorrect" src="sounds/correct.mp3" preload="auto"></audio>
   <audio id="sndWrong"   src="sounds/wrong.mp3"   preload="auto"></audio>
 
 <script>
 (function(){
-  // ===== Constants (fixed names) =====
+  // ===== Constants =====
   const NAME_P1 = 'Aliah';
   const NAME_P2 = 'Aliana';
+
+  // --- Music pool (filenames inside /sounds) ---
+  const MUSIC_TRACKS = [
+    "Confused and Angry Robots.mp3",
+    "Delightful Stroll.mp3",
+    "Forest Theme - D Minor - Jordan Ottesen.mp3",
+    "Rainbow Lollipop.mp3",
+    "Space Knights.mp3",
+    "Water Theme - G Major - Jordan Ottesen.mp3"
+  ];
+  function setRandomBgm(){
+    if (!MUSIC_TRACKS.length) return;
+    const pick = MUSIC_TRACKS[Math.floor(Math.random()*MUSIC_TRACKS.length)];
+    BGM.src = "sounds/" + pick;
+  }
 
   // ===== DOM =====
   var $=function(s){return document.querySelector(s);}
@@ -397,6 +410,7 @@
   function hideTurnOverlay(){ overlay.classList.remove('show'); awaitingTurnStart=false; }
   btnBeginTurn.addEventListener('click', function(){
     hideTurnOverlay();
+    setRandomBgm();
     if(elMusicOn.value==="1"){ try{ BGM.volume=+elMusicVol.value; BGM.play(); }catch(e){} }
     qCount = 0; elQIndex.textContent = '0';
     setRowVis();
@@ -422,6 +436,7 @@
       qCount = 0; elQIndex.textContent = '0';
       showTurnOverlay();
     }else{
+      setRandomBgm();
       elAns1.disabled=false; next(true); elAns1.focus();
       if(elMusicOn.value==="1"){ try{ BGM.play(); }catch(e){} }
     }
@@ -438,38 +453,33 @@
     try{ BGM.pause(); BGM.currentTime=0; }catch(e){}
   }
 
- // Replace your current next() with this version.
-// Fix: in single-player, stop after selected number of rounds.
+  // Fix: single-player stops after selected rounds
+  function next(initial){
+    if(awaitingTurnStart) return;
+    stopTimer();
 
-function next(initial){
-  if(awaitingTurnStart) return;
-  stopTimer();
-
-  // --- NEW: end-of-session checks ---
-  if (elPlayers.value === '2') {
-    if (!initial && sessionFinishedFor(turn)) {
-      if (everyonePlayed()) return finish();
-      turn = (turn === 'p1') ? 'p2' : 'p1';
-      updateTurnBanner();
-      showTurnOverlay();
-      return;
+    if (elPlayers.value === '2') {
+      if (!initial && sessionFinishedFor(turn)) {
+        if (everyonePlayed()) return finish();
+        turn = (turn === 'p1') ? 'p2' : 'p1';
+        updateTurnBanner();
+        showTurnOverlay();
+        return;
+      }
+    } else {
+      var maxQ = parseInt(elRounds.value, 10);
+      if (!initial && qCount >= maxQ) return finish();
     }
-  } else {
-    // single player: qCount == number of questions already shown
-    var maxQ = parseInt(elRounds.value, 10);
-    if (!initial && qCount >= maxQ) return finish();
-  }
-  // --- end NEW ---
 
-  qCount++;
-  var mode=pickOp(elMode.value), L=+elDiff.value;
-  current=ops[mode].gen(L);
-  elFormula.textContent=current.text+' = ?';
-  elQIndex.textContent=qCount;
-  [elAns1,elP1,elP2].forEach(function(i){i.value='';});
-  elFeedback.textContent=' '; elFeedback.className='feedback';
-  startTimerIfNeeded();
-}
+    qCount++;
+    var mode=pickOp(elMode.value), L=+elDiff.value;
+    current=ops[mode].gen(L);
+    elFormula.textContent=current.text+' = ?';
+    elQIndex.textContent=qCount;
+    [elAns1,elP1,elP2].forEach(function(i){i.value='';});
+    elFeedback.textContent=' '; elFeedback.className='feedback';
+    startTimerIfNeeded();
+  }
 
   function finish(){
     stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
