@@ -5,213 +5,83 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Math Sprint — Head-to-Head</title>
 <style>
-  /* your CSS exactly as before */
+  :root{--bg:#0f1220;--panel:#161a2e;--ink:#e9ecf1;--muted:#aab3c5;--good:#38d39f;--bad:#ff6b6b;--warn:#ffb020;--chip:#232843}
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:radial-gradient(1200px 800px at 10% -10%,#1b2142 0%,var(--bg) 55%);color:var(--ink);display:grid;place-items:start center}
+  .wrap{width:min(1000px,96vw);margin:28px 0 56px}
+  /* … all your original CSS rules … */
+  @media (max-width:700px){
+    .controls{grid-template-columns:1fr;}
+  }
+
+  /* === Avatar slot fix === */
+  .namebox { grid-template-columns: 40px 1fr; }
+  .name-avatar { display: block; }
+  .avatar { display: block; }
 </style>
 </head>
 <body>
-  <!-- your HTML exactly as before -->
-<script>
-(function(){
-  // ===== DOM =====
-  var $=function(s){return document.querySelector(s);}
-  var elMode=$('#mode'), elDiff=$('#difficulty'), elDiffVal=$('#diffVal');
-  var elTimerSec=$('#timerSec'), elTimerVal=$('#timerVal');
-  var elRounds=$('#rounds'), elPlayers=$('#players');
-  var elNameP1=$('#nameP1'), elNameP2=$('#nameP2');
+  <div class="wrap">
+    <header>
+      <h1>Math Sprint</h1>
+      <div style="display:flex;gap:10px">
+        <button id="btnStart" class="btn good">Start ▶</button>
+        <button id="btnReset" class="btn ghost">Reset ⟲</button>
+      </div>
+    </header>
 
-  var elMusicOn=$('#musicOn'), elMusicVol=$('#musicVol'), BGM=$('#bgm');
-  var elSoundOn=$('#soundOn'), elVol=$('#volume'), SND_OK=$('#sndCorrect'), SND_NO=$('#sndWrong');
+    <section class="controls">
+      <!-- other controls here -->
 
-  var elStart=$('#btnStart'), elReset=$('#btnReset');
-  var elSingle=$('#singleRows'), elMulti=$('#multiRows');
-  var elAns1=$('#answer1'), elBtn1=$('#btnSubmit1');
-  var elP1=$('#answerP1'), elP2=$('#answerP2');
-  var elBtnP1=$('#btnSubmitP1'), elBtnP2=$('#btnSubmitP2');
-  var rowP1=$('#rowP1'), rowP2=$('#rowP2');
+      <!-- Names + avatar previews -->
+      <div class="group names">
+        <label>Names</label>
+        <div class="names-row">
+          <div class="namebox">
+            <img id="nameAvatarP1" class="name-avatar" src="players/p1.png" alt="P1"
+                 onerror="this.style.visibility='hidden'">
+            <input id="nameP1" type="text" placeholder="Player 1" value="Player 1" />
+          </div>
+          <div class="namebox">
+            <img id="nameAvatarP2" class="name-avatar" src="players/p2.png" alt="P2"
+                 onerror="this.style.visibility='hidden'">
+            <input id="nameP2" type="text" placeholder="Player 2" value="Player 2" />
+          </div>
+        </div>
+      </div>
+    </section>
 
-  var elFormula=$('#formula'), elFeedback=$('#feedback');
-  var elStatGood=$('#statGood'), elStatBad=$('#statBad'), elStatAcc=$('#statAcc');
-  var elQIndex=$('#qIndex'), elTimer=$('#timer');
-  var elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
-  var elLblP1=$('#lblP1'), elLblP2=$('#lblP2'), elTurn=$('#turnBanner');
+    <section class="grid" style="margin-top:16px">
+      <div class="card">
+        <div class="problem" id="problem">
+          <!-- single player row omitted for brevity -->
 
-  var fxGood=$('#fxGood'), fxBad=$('#fxBad'), fxGoodImg=$('#fxGoodImg'), fxBadImg=$('#fxBadImg');
+          <!-- multiplayer (only active row shown) -->
+          <div id="multiRows" class="answer-rows" style="display:none">
+            <div class="row" id="rowP1">
+              <img id="avatarP1" class="avatar" src="players/p1.png" alt="P1"
+                   onerror="this.style.visibility='hidden'">
+              <input id="answerP1" class="p1" type="text" inputmode="numeric" placeholder="P1…" disabled />
+              <button id="btnSubmitP1" class="btn">Submit</button>
+            </div>
+            <div class="row" id="rowP2">
+              <img id="avatarP2" class="avatar" src="players/p2.png" alt="P2"
+                   onerror="this.style.visibility='hidden'">
+              <input id="answerP2" class="p2" type="text" inputmode="numeric" placeholder="P2…" disabled />
+              <button id="btnSubmitP2" class="btn">Submit</button>
+            </div>
+          </div>
 
-  // Turn overlay
-  var overlay=$('#turnOverlay'), overlayText=$('#turnText'), overlayAvatar=$('#turnAvatar'), btnBeginTurn=$('#btnBeginTurn');
+          <div id="feedback" class="feedback">&nbsp;</div>
+        </div>
 
-  // Final overlay
-  var finalOv = $('#finalOverlay'), finalCard = $('#finalCard');
-  var finalScore = $('#finalScore'), finalClose = $('#finalClose');
-  function showFinal(text){ finalScore.textContent=text; finalOv.classList.add('show'); finalOv.setAttribute('aria-hidden','false'); }
-  function hideFinal(){ finalOv.classList.remove('show'); finalOv.setAttribute('aria-hidden','true'); }
-  finalClose.addEventListener('click', hideFinal);
-  finalOv.addEventListener('click', function(e){ if(e.target===finalOv) hideFinal(); });
-  window.addEventListener('keydown', function(e){ if(e.key==='Escape') hideFinal(); });
+        <!-- stats and footer here -->
+      </div>
 
-  // ===== State =====
-  var GOOD_CANDIDATES=["images/Macky-Correct-2.jpg","images/IMG-20250628-WA0014[1].png","images/correct.png","images/correct1.webp"];
-  var BAD_CANDIDATES =["images/Macky-Incorrect-1.png","images/wrong.png","images/wrong1.webp"];
-  var GOOD_IMGS=[], BAD_IMGS=[];
-  var P1_IMG="players/p1.png";
-  var P2_IMG="players/p2.png";
+      <!-- timer and right-side stats card here -->
+    </section>
+  </div>
 
-  var running=false, current=null, qCount=0;
-  var good=0,bad=0;
-  var p1={ok:0,no:0,played:0}, p2={ok:0,no:0,played:0};
-  var tick=null, remaining=0;
-  var turn='p1';
-  var awaitingTurnStart=false;
-
-  // ===== preload images =====
-  function filterExisting(candidates, cb){
-    var out=[], i=0;
-    function tryNext(){
-      if(i>=candidates.length){ cb(out); return; }
-      var src=candidates[i++], img=new Image();
-      img.onload=function(){ out.push(src); tryNext(); };
-      img.onerror=tryNext; img.src=src;
-    }
-    tryNext();
-  }
-  filterExisting(GOOD_CANDIDATES,function(arr){ GOOD_IMGS=arr.length?arr:GOOD_CANDIDATES.slice(0,1); fxGoodImg.src=GOOD_IMGS[0]; });
-  filterExisting(BAD_CANDIDATES, function(arr){ BAD_IMGS =arr.length?arr:BAD_CANDIDATES.slice(0,1);  fxBadImg.src =BAD_IMGS[0]; });
-
-  // ===== Music =====
-  function updateMusic(){
-    BGM.volume=+elMusicVol.value;
-    if(elMusicOn.value==="1"){
-      BGM.play().catch(function(){});
-    }else{
-      BGM.pause(); BGM.currentTime=0;
-    }
-  }
-  elMusicOn.addEventListener('change',updateMusic);
-  elMusicVol.addEventListener('input',updateMusic);
-
-  // ===== Sound FX =====
-  var AC=(window.AudioContext||window.webkitAudioContext)? new (window.AudioContext||window.webkitAudioContext)() : null;
-  var master=AC? AC.createGain():null; if(master){ master.connect(AC.destination); master.gain.value=+elVol.value; }
-  function soundOn(){ return elSoundOn.value==="1"; }
-  elVol.addEventListener('input',function(){ if(master) master.gain.value=+elVol.value; });
-
-  function tone(freq,dur,type,when,vol){
-    if(!soundOn() || !AC) return;
-    dur = dur||0.12; type=type||'sine'; when=when||0; vol=vol||0.2;
-    var o=AC.createOscillator(), g=AC.createGain();
-    o.type=type; o.frequency.value=freq; o.connect(g); g.connect(master);
-    var t=AC.currentTime+when; o.start(t);
-    g.gain.setValueAtTime(0.0001,t);
-    g.gain.exponentialRampToValueAtTime(vol,t+0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-    o.stop(t+dur+0.02);
-  }
-  function playAudio(el){
-    if(!soundOn() || !el) return;
-    try{ el.currentTime=0; el.volume=+elVol.value; el.play(); }catch(e){}
-  }
-  var sfx={
-    correct:function(){ playAudio(SND_OK); },
-    wrong:function(){ playAudio(SND_NO); },
-    tick:function(){ tone(900,0.03,'square',0,0.12); },
-    timeout:function(){ [523,392,330].forEach(function(f,i){tone(f,0.12,'sine',i*0.09,0.22);}); }
-  };
-
-  // ===== Math =====
-  function clamp(n,a,b){return Math.min(Math.max(n,a),b);}
-  function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
-  function pickOp(m){return m!=='mix'?m:['add','sub','mul','div'][rnd(0,3)];}
-  function rangeFor(op,L){
-    L=clamp(+L,1,10);
-    var add=[9,12,20,30,40,60,90,120,180,250][L-1];
-    var mul=[5,6,8,9,10,12,15,18,20,25][L-1];
-    if(op==='mul') return {min:0,max:mul};
-    if(op==='div') return {min:1,max:mul};
-    return {min:0,max:add};
-  }
-  var ops={
-    add:{gen:function(L){var r=rangeFor('add',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:a+" + "+b,answer:a+b};}},
-    sub:{gen:function(L){var r=rangeFor('sub',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);if(b>a){var t=a;a=b;b=t;}return {text:a+" − "+b,answer:a-b};}},
-    mul:{gen:function(L){var r=rangeFor('mul',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:a+" × "+b,answer:a*b};}},
-    div:{gen:function(L){var r=rangeFor('div',L),b=rnd(r.min,r.max),q=rnd(r.min,r.max),a=b*q;return {text:a+" ÷ "+b,answer:q};}}
-  };
-
-  // ===== Helpers =====
-  function flash(el,list,hold){
-    hold = hold||600;
-    var pick=list[rnd(0,list.length-1)];
-    (el===fxGood?fxGoodImg:fxBadImg).src=pick;
-    el.classList.add('show'); setTimeout(function(){el.classList.remove('show');},hold);
-  }
-  function accuracy(){ var t=good+bad; return !t?'—':Math.round((good/t)*100); }
-  function updateStats(){
-    elStatGood.textContent=good; elStatBad.textContent=bad;
-    var acc=accuracy(); elStatAcc.textContent=acc==='—'?'—':(acc+'%');
-  }
-
-  function activeName(){ return turn==='p1' ? (elNameP1.value||'Player 1') : (elNameP2.value||'Player 2'); }
-  function updateTurnBanner(){ elTurn.textContent = elPlayers.value==='2' ? ('Turn: '+activeName()) : '—'; }
-  function setRowVis(){
-    var p1Active = (turn==='p1');
-    rowP1.classList.toggle('hidden',!p1Active);
-    rowP2.classList.toggle('hidden', p1Active);
-    elP1.disabled=!p1Active; elP2.disabled=p1Active;
-    (p1Active?elP1:elP2).focus();
-  }
-
-  // ===== UI mode =====
-  function uiMode(){
-    var two = elPlayers.value==="2";
-    elSingle.style.display = two ? 'none':'grid';
-    elMulti .style.display = two ? 'grid':'none';
-    elVersus.style.display = two ? 'grid':'none';
-    elLblP1.textContent=(elNameP1.value||'Player 1')+' ✓ / ✗';
-    elLblP2.textContent=(elNameP2.value||'Player 2')+' ✓ / ✗';
-    $('#answerP1').placeholder = (elNameP1.value||'Player 1');
-    $('#answerP2').placeholder = (elNameP2.value||'Player 2');
-    updateTurnBanner();
-    if(two) setRowVis();
-  }
-  elPlayers.addEventListener('change',uiMode);
-  elNameP1.addEventListener('input',uiMode);
-  elNameP2.addEventListener('input',uiMode);
-
-  // ===== Turn overlay =====
-  function showTurnOverlay(){
-    if(elPlayers.value!=='2') return;
-    overlayText.textContent = 'Next up: ' + activeName();
-    overlayAvatar.src = (turn==='p1')? P1_IMG : P2_IMG;
-    overlayAvatar.onerror = function(){ overlayAvatar.style.display='none'; };
-    overlayAvatar.onload  = function(){ overlayAvatar.style.display='block'; };
-    overlay.classList.add('show');
-    awaitingTurnStart = true;
-  }
-  function hideTurnOverlay(){ overlay.classList.remove('show'); awaitingTurnStart=false; }
-
-  btnBeginTurn.addEventListener('click', function(){
-    hideTurnOverlay();
-    if(elMusicOn.value==="1"){ try{ BGM.volume=+elMusicVol.value; BGM.play(); }catch(e){} }
-
-    // RESET per-player question counter at the start of each player's turn
-    qCount = 0;
-    elQIndex.textContent = '0';
-
-    // 🔧 RESET the global totals shown for the new player's turn
-    if (elPlayers.value === '2') {
-      good = 0;
-      bad  = 0;
-      updateStats();
-    }
-
-    setRowVis();
-    next(true);
-  });
-  window.addEventListener('keydown', function(e){
-    if(awaitingTurnStart && (e.key===' ' || e.key==='Enter')){ e.preventDefault(); btnBeginTurn.click(); }
-  });
-
-  /* rest of your JS unchanged ... */
-})();
-</script>
+  <!-- result overlays, turn overlay, audio elements, script… -->
 </body>
 </html>
