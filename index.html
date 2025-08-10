@@ -84,6 +84,13 @@ body { place-items: start stretch; }
 .answer-rows { width: 100%; }
 .row { grid-template-columns: auto 1fr auto; }
 .problem, .card { width: 100%; }
+/* === Avatar slot fix === */
+.namebox {
+  grid-template-columns: 40px 1fr; /* always reserve space for avatar */
+}
+.name-avatar {
+  display: block;                  /* ensure it's a block element */
+}
 
 </style>
 </head>
@@ -139,11 +146,11 @@ body { place-items: start stretch; }
         <label>Names</label>
         <div class="names-row">
           <div class="namebox">
-            <img id="nameAvatarP1" class="name-avatar" src="players/p1.png" alt="P1" onerror="this.style.display='none'">
+           <img id="nameAvatarP1" class="name-avatar" src="players/p1.png" alt="P1" onerror="this.style.visibility='hidden'">
             <input id="nameP1" type="text" placeholder="Player 1" value="Player 1" />
           </div>
           <div class="namebox">
-            <img id="nameAvatarP2" class="name-avatar" src="players/p2.png" alt="P2" onerror="this.style.display='none'">
+           <img id="nameAvatarP2" class="name-avatar" src="players/p2.png" alt="P2" onerror="this.style.visibility='hidden'">
             <input id="nameP2" type="text" placeholder="Player 2" value="Player 2" />
           </div>
         </div>
