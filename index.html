@@ -175,12 +175,6 @@
           <div id="feedback" class="feedback">&nbsp;</div>
         </div>
 
-        <!-- global stats -->
-        <div class="stats">
-          <div class="stat"><label>Total Correct</label><b id="statGood">0</b></div>
-          <div class="stat"><label>Total Incorrect</label><b id="statBad">0</b></div>
-          <div class="stat"><label>Accuracy</label><b id="statAcc">—</b></div>
-        </div>
         <!-- per-player stats -->
         <div id="versus" class="stats" style="display:none">
           <div class="stat"><label id="lblP1">Aliah ✓ / ✗</label><b id="p1Score">0 / 0</b></div>
@@ -249,7 +243,6 @@
   var rowP1=$('#rowP1'), rowP2=$('#rowP2');
 
   var elFormula=$('#formula'), elFeedback=$('#feedback');
-  var elStatGood=$('#statGood'), elStatBad=$('#statBad'), elStatAcc=$('#statAcc');
   var elQIndex=$('#qIndex'), elTimer=$('#timer');
   var elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
   var elLblP1=$('#lblP1'), elLblP2=$('#lblP2'), elTurn=$('#turnBanner');
@@ -363,10 +356,7 @@
     el.classList.add('show'); setTimeout(function(){el.classList.remove('show');},hold);
   }
   function accuracy(){ var t=good+bad; return !t?'—':Math.round((good/t)*100); }
-  function updateStats(){
-    elStatGood.textContent=good; elStatBad.textContent=bad;
-    var acc=accuracy(); elStatAcc.textContent=acc==='—'?'—':(acc+'%');
-  }
+  function updateStats(){ /* UI removed */ }
 
   // banner + active row
   function activeName(){ return turn==='p1' ? NAME_P1 : NAME_P2; }
