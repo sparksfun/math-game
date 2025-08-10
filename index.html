@@ -530,12 +530,21 @@ body { place-items: start stretch; }
       sfx.correct(); flash(fxGood,GOOD_IMGS,500);
       consumeRound(); setTimeout(function(){ next(); },180);
     } else {
-      bad++; streak=0;
-      if(who==='p1'){ p1.no++; elP1Score.textContent=p1.ok+' / '+p1.no; }
-      if(who==='p2'){ p2.no++; elP2Score.textContent=p2.ok+' / '+p2.no; }
-      elFeedback.textContent='Try again'; elFeedback.className='feedback no';
-      elLast.textContent='✗'; elLast.style.color='var(--bad)';
-      sfx.wrong(); flash(fxBad,BAD_IMGS,700);
+  bad++;
+  streak = 0;
+  if (who === 'p1') { p1.no++; elP1Score.textContent = p1.ok + ' / ' + p1.no; }
+  if (who === 'p2') { p2.no++; elP2Score.textContent = p2.ok + ' / ' + p2.no; }
+  elFeedback.textContent = '✗ Wrong';
+  elFeedback.className = 'feedback no';
+  elLast.textContent = '✗';
+  elLast.style.color = 'var(--bad)';
+  sfx.wrong();
+  flash(fxBad, BAD_IMGS, 700);
+
+  consumeRound();
+  setTimeout(function () { next(); }, 500); // short delay so flash shows
+}
+
     }
     updateStats();
   }
