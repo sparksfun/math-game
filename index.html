@@ -39,7 +39,7 @@
   .feedback{height:28px;font-weight:700;letter-spacing:.3px}
   .feedback.ok{color:var(--good)} .feedback.no{color:var(--bad)}
 
-  .stats{display:grid;grid-template-columns:repeat(1,1fr);gap:8px;margin-top:12px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
   .stat{background:#0e1330;border:1px solid #2b3155;border-radius:12px;padding:10px 12px;display:grid;gap:4px} .stat b{font-size:22px}
 
   .timer{display:grid;place-items:center;height:80px;background:#0e1330;border:1px solid #2b3155;border-radius:12px;font-weight:800;letter-spacing:.5px;font-size:28px}
@@ -64,12 +64,10 @@
     display:grid;place-items:center;z-index:1100;opacity:0;pointer-events:none;transition:opacity .2s ease}
   .final-overlay.show{opacity:1;pointer-events:auto}
   .final-card{background:var(--panel);border:1px solid #2b3155;border-radius:20px;padding:30px 28px;
-    display:grid;gap:16px;place-items:center;box-shadow:0 24px 64px rgba(0,0,0,.5);max-width:min(90vw,780px)}
+    display:grid;gap:14px;place-items:center;box-shadow:0 24px 64px rgba(0,0,0,.5);max-width:min(90vw,780px)}
   .final-card h2{margin:0;font-size:clamp(18px,2.6vw,26px);color:var(--muted)}
   .final-score{font-weight:900;letter-spacing:.3px;text-align:center;
     font-size:clamp(28px,4.8vw,56px);line-height:1.15}
-  .final-winners{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
-  .final-winner-img{width:min(22vmin,140px);height:min(22vmin,140px);border-radius:50%;object-fit:cover;border:2px solid #2b3155}
 </style>
 </head>
 <body>
@@ -119,7 +117,7 @@
         </select>
       </div>
 
-      <!-- Names removed; fixed to Aliah & Aliana -->
+      <!-- (Name inputs removed; names are fixed: Aliah & Aliana) -->
 
       <!-- Audio controls -->
       <div class="group">
@@ -177,11 +175,12 @@
           <div id="feedback" class="feedback">&nbsp;</div>
         </div>
 
-        <!-- global stats (Totals removed) -->
+        <!-- global stats -->
         <div class="stats">
+          <div class="stat"><label>Total Correct</label><b id="statGood">0</b></div>
+          <div class="stat"><label>Total Incorrect</label><b id="statBad">0</b></div>
           <div class="stat"><label>Accuracy</label><b id="statAcc">—</b></div>
         </div>
-
         <!-- per-player stats -->
         <div id="versus" class="stats" style="display:none">
           <div class="stat"><label id="lblP1">Aliah ✓ / ✗</label><b id="p1Score">0 / 0</b></div>
@@ -213,14 +212,10 @@
     </div>
   </div>
 
-  <!-- Final Result overlay (now shows winner image) -->
+  <!-- Final Result overlay -->
   <div id="finalOverlay" class="final-overlay" aria-hidden="true">
     <div id="finalCard" class="final-card">
       <h2>Session complete</h2>
-      <div class="final-winners" id="finalWinners">
-        <img id="finalImg1" class="final-winner-img" alt="" />
-        <img id="finalImg2" class="final-winner-img" alt="" />
-      </div>
       <div id="finalScore" class="final-score">—</div>
       <button id="finalClose" class="btn">Close ✕</button>
     </div>
@@ -254,7 +249,7 @@
   var rowP1=$('#rowP1'), rowP2=$('#rowP2');
 
   var elFormula=$('#formula'), elFeedback=$('#feedback');
-  var elStatAcc=$('#statAcc');
+  var elStatGood=$('#statGood'), elStatBad=$('#statBad'), elStatAcc=$('#statAcc');
   var elQIndex=$('#qIndex'), elTimer=$('#timer');
   var elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
   var elLblP1=$('#lblP1'), elLblP2=$('#lblP2'), elTurn=$('#turnBanner');
@@ -264,11 +259,9 @@
   // Turn overlay
   var overlay=$('#turnOverlay'), overlayText=$('#turnText'), overlayAvatar=$('#turnAvatar'), btnBeginTurn=$('#btnBeginTurn');
 
-  // Final overlay (winner images)
-  var finalOv = $('#finalOverlay');
+  // Final overlay
+  var finalOv = $('#finalOverlay'), finalCard = $('#finalCard');
   var finalScore = $('#finalScore'), finalClose = $('#finalClose');
-  var finalImg1 = $('#finalImg1'), finalImg2 = $('#finalImg2');
-
   function showFinal(text){ finalScore.textContent=text; finalOv.classList.add('show'); finalOv.setAttribute('aria-hidden','false'); }
   function hideFinal(){ finalOv.classList.remove('show'); finalOv.setAttribute('aria-hidden','true'); }
   finalClose.addEventListener('click', hideFinal);
@@ -371,6 +364,7 @@
   }
   function accuracy(){ var t=good+bad; return !t?'—':Math.round((good/t)*100); }
   function updateStats(){
+    elStatGood.textContent=good; elStatBad.textContent=bad;
     var acc=accuracy(); elStatAcc.textContent=acc==='—'?'—':(acc+'%');
   }
 
@@ -482,45 +476,21 @@
     stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
 
     var scoreLine = '';
-    var winner = null; // 'p1' | 'p2' | null (tie)
-
     if(elPlayers.value==='2'){
       var p1Score=p1.ok, p2Score=p2.ok;
       var n1=NAME_P1, n2=NAME_P2;
-      if(p1Score>p2Score) winner='p1';
-      else if(p2Score>p1Score) winner='p2';
+      var winner;
+      if(p1Score>p2Score) winner = n1 + ' wins!';
+      else if(p2Score>p1Score) winner = n2 + ' wins!';
       else {
         var t1=p1.no,t2=p2.no;
-        winner = (t1<t2 ? 'p1' : (t2<t1 ? 'p2' : null));
+        winner = (t1<t2 ? (n1+' wins by fewer mistakes!') :
+                 (t2<t1 ? (n2+' wins by fewer mistakes!') : 'It’s a tie!'));
       }
-
-      var winnerText = winner==='p1' ? (n1+' wins!') :
-                       winner==='p2' ? (n2+' wins!') :
-                       'It’s a tie!';
-      scoreLine = winnerText + ' ('+n1+' '+p1.ok+'/'+p1.no+' vs '+n2+' '+p2.ok+'/'+p2.no+')';
+      scoreLine = winner + ' ('+n1+' '+p1.ok+'/'+p1.no+' vs '+n2+' '+p2.ok+'/'+p2.no+')';
     }else{
       var acc=accuracy();
       scoreLine = good+' correct, '+bad+' wrong, accuracy '+(acc==='—'?'—':acc+'%');
-    }
-
-    // Set winner images in the final popup
-    if(elPlayers.value==='2'){
-      if(winner==='p1'){
-        finalImg1.src = P1_IMG; finalImg1.alt = NAME_P1;
-        finalImg2.src = '';     finalImg2.alt = '';     finalImg2.style.display='none';
-        finalImg1.style.display='block';
-      }else if(winner==='p2'){
-        finalImg1.src = P2_IMG; finalImg1.alt = NAME_P2;
-        finalImg2.src = '';     finalImg2.alt = '';     finalImg2.style.display='none';
-        finalImg1.style.display='block';
-      }else{ // tie → show both
-        finalImg1.src = P1_IMG; finalImg1.alt = NAME_P1; finalImg1.style.display='block';
-        finalImg2.src = P2_IMG; finalImg2.alt = NAME_P2; finalImg2.style.display='block';
-      }
-    }else{
-      // single-player: hide images
-      finalImg1.style.display='none';
-      finalImg2.style.display='none';
     }
 
     elFeedback.textContent=' ';
