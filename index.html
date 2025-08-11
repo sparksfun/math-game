@@ -400,6 +400,10 @@
     if(op==='div') return {min:1,max:mul};
     return {min:0,max:add};
   }
+  function accuracy(){
+  var t = good + bad;
+  return t ? Math.round((good / t) * 100) : '—';
+}
   var ops={
     add:{gen:function(L){var r=rangeFor('add',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:a+" + "+b,answer:a+b};}},
     sub:{gen:function(L){var r=rangeFor('sub',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);if(b>a){var t=a;a=b;b=t;}return {text:a+" − "+b,answer:a-b};}},
