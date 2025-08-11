@@ -26,8 +26,7 @@
   .grid {display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: stretch; }
   .card{background:var(--panel);border:1px solid #262b4a;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
   .problem{position:relative;display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
- .formula {
-  font-size:64px;/* keep large font */font-weight:800;letter-spacing:1px;margin-top:40px;/* push down */ margin-left:40px;/* move left */}
+ .formula {font-size:60px;/* keep large font */font-weight:800;letter-spacing:1px;margin-top:40px;/* push down */ margin-left:35px;/* move left */}
 
 
   .timer-mini{position:absolute;top:12px;left:12px;width:88px;height:88px;display:grid;place-items:center;background:#0e1330;border:1px solid #2b3155;border-radius:12px;font-weight:800;letter-spacing:.5px;font-size:20px;box-shadow:0 6px 20px rgba(0,0,0,.35);}
@@ -528,7 +527,7 @@
     qCount++;
     var mode=pickOp(elMode.value), L=+elDiff.value;
     current=ops[mode].gen(L);
-    elFormula.textContent=current.text+' = ?';
+    elFormula.textContent=current.text;
     elQIndex.textContent=qCount;
     [elAns1,elP1,elP2].forEach(function(i){i.value='';});
     elFeedback.textContent=' '; elFeedback.className='feedback';
