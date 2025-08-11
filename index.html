@@ -25,8 +25,10 @@
 
   .grid {display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: stretch; }
   .card{background:var(--panel);border:1px solid #262b4a;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-  .problem{display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
+  .problem{position:relative;display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
   .formula{font-size:clamp(36px,6vw,64px);font-weight:800;letter-spacing:1px}
+
+  .timer-mini{position:absolute;top:12px;left:12px;width:88px;height:88px;display:grid;place-items:center;background:#0e1330;border:1px solid #2b3155;border-radius:12px;font-weight:800;letter-spacing:.5px;font-size:20px;box-shadow:0 6px 20px rgba(0,0,0,.35);}
 
   .answer-rows{display:grid;gap:10px;width:100%}
   .row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
@@ -41,8 +43,6 @@
 
   .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
   .stat{background:#0e1330;border:1px solid #2b3155;border-radius:12px;padding:10px 12px;display:grid;gap:4px} .stat b{font-size:22px}
-
-  .timer{display:grid;place-items:center;height:80px;background:#0e1330;border:1px solid #2b3155;border-radius:12px;font-weight:800;letter-spacing:.5px;font-size:28px}
 
   .fx-overlay{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .25s ease;z-index:999}
   .fx-overlay.show{opacity:1}
@@ -145,6 +145,9 @@
     <section class="grid" style="margin-top:16px">
       <div class="card">
         <div class="problem" id="problem">
+          <!-- INLINE TIMER (upper-left of the problem area) -->
+          <div class="timer-mini" id="timerMini" aria-live="polite">Timer: off</div>
+
           <div class="turn" id="turnBanner">—</div>
           <div id="formula" class="formula">—</div>
 
@@ -184,9 +187,9 @@
         <footer>Shortcuts: Start turn (Space/Enter) • Submit (Enter) • Esc clear • S skip</footer>
       </div>
 
+      <!-- Right card now only shows the question index -->
       <div class="card">
-        <div class="timer" id="timer">Timer: off</div>
-        <div class="stat" style="margin-top:12px"><label>Question</label><b id="qIndex">0</b></div>
+        <div class="stat"><label>Question</label><b id="qIndex">0</b></div>
       </div>
     </section>
   </div>
@@ -279,7 +282,7 @@
   var rowP1=$('#rowP1'), rowP2=$('#rowP2');
 
   var elFormula=$('#formula'), elFeedback=$('#feedback');
-  var elQIndex=$('#qIndex'), elTimer=$('#timer');
+  var elQIndex=$('#qIndex'), elTimer=$('#timerMini'); // <-- timer now inside the problem area
   var elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
   var elLblP1=$('#lblP1'), elLblP2=$('#lblP2'), elTurn=$('#turnBanner');
 
@@ -369,7 +372,6 @@
   };
 
   // ===== Helpers =====
-  // SAFE flash: never throw even if images missing
   function flash(el, list, hold){
     hold = hold || 600;
     try{
@@ -401,9 +403,9 @@
     return {min:0,max:add};
   }
   function accuracy(){
-  var t = good + bad;
-  return t ? Math.round((good / t) * 100) : '—';
-}
+    var t = good + bad;
+    return t ? Math.round((good / t) * 100) : '—';
+  }
   var ops={
     add:{gen:function(L){var r=rangeFor('add',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:a+" + "+b,answer:a+b};}},
     sub:{gen:function(L){var r=rangeFor('sub',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);if(b>a){var t=a;a=b;b=t;}return {text:a+" − "+b,answer:a-b};}},
@@ -530,35 +532,33 @@
     startTimerIfNeeded();
   }
 
- function finish(){
-  if (SND_FINISH) { try { SND_FINISH.currentTime = 0; SND_FINISH.play(); } catch(e){} }
-  stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
+  function finish(){
+    if (SND_FINISH) { try { SND_FINISH.currentTime = 0; SND_FINISH.play(); } catch(e){} }
+    stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
 
-  var scoreLine = '';
-  if(elPlayers.value==='2'){
-    var p1Score=p1.ok, p2Score=p2.ok;
-    var n1=NAME_P1, n2=NAME_P2;
-    var winner;
-    if(p1Score>p2Score) winner = n1 + ' wins!';
-    else if(p2Score>p1Score) winner = n2 + ' wins!';
-    else {
-      var t1=p1.no,t2=p2.no;
-      winner = (t1<t2 ? (n1+' wins by fewer mistakes!') :
-               (t2<t1 ? (n2+' wins by fewer mistakes!') : 'It’s a tie!'));
+    var scoreLine = '';
+    if(elPlayers.value==='2'){
+      var p1Score=p1.ok, p2Score=p2.ok;
+      var n1=NAME_P1, n2=NAME_P2;
+      var winner;
+      if(p1Score>p2Score) winner = n1 + ' wins!';
+      else if(p2Score>p1Score) winner = n2 + ' wins!';
+      else {
+        var t1=p1.no,t2=p2.no;
+        winner = (t1<t2 ? (n1+' wins by fewer mistakes!') :
+                 (t2<t1 ? (n2+' wins by fewer mistakes!') : 'It’s a tie!'));
+      }
+      scoreLine = winner + ' ('+n1+' '+p1.ok+'/'+p1.no+' vs '+n2+' '+p2.ok+'/'+p2.no+')';
+    }else{
+      var t = good + bad;
+      var acc = t ? Math.round((good / t) * 100) : '—';
+      scoreLine = good+' correct, '+bad+' wrong, accuracy '+(acc==='—'?'—':acc+'%');
     }
-    scoreLine = winner + ' ('+n1+' '+p1.ok+'/'+p1.no+' vs '+n2+' '+p2.ok+'/'+p2.no+')';
-  }else{
-    // Inline accuracy to avoid dependency on a missing function
-    var t = good + bad;
-    var acc = t ? Math.round((good / t) * 100) : '—';
-    scoreLine = good+' correct, '+bad+' wrong, accuracy '+(acc==='—'?'—':acc+'%');
+
+    elFeedback.textContent=' ';
+    elFeedback.className='feedback';
+    showFinal(scoreLine);
   }
-
-  elFeedback.textContent=' ';
-  elFeedback.className='feedback';
-  showFinal(scoreLine);
-}
-
 
   // ===== Answer submit =====
   function consumeRound(){ if(elPlayers.value==='2'){ (turn==='p1'?p1:p2).played++; } }
@@ -611,7 +611,7 @@
   // ===== Timer =====
   function startTimerIfNeeded(){
     var sec=+elTimerSec.value;
-    if(!sec){ elTimer.textContent='Timer: off'; return; }
+    if(!sec){ elTimer.textContent='Timer: off'; elTimer.style.color='var(--ink)'; return; }
     remaining=sec; renderTimer(); stopTimer();
     tick=setInterval(function(){
       remaining--;
@@ -657,9 +657,8 @@
   attemptAutoplay();
 
   // init visuals
-  fxGoodImg.src = GOOD_CANDIDATES[0];
-  fxBadImg.src  = BAD_CANDIDATES[0];
-  // UI reset
+  fxGoodImg.src = "images/Macky-Correct-2.jpg";
+  fxBadImg.src  = "images/Macky-Incorrect-1.png";
   stopTimer(); running=false; current=null; qCount=0;
   elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
   elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
