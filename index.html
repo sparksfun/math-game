@@ -529,7 +529,7 @@
     qCount++;
     var mode=pickOp(elMode.value), L=+elDiff.value;
     current=ops[mode].gen(L);
-    elFormula.textContent=current.text+' = ?';
+   elFormula.textContent = current.text;
     elQIndex.textContent=qCount;
     [elAns1,elP1,elP2].forEach(function(i){i.value='';});
     elFeedback.textContent=' '; elFeedback.className='feedback';
