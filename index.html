@@ -121,8 +121,8 @@
       <div class="group">
         <label>Music</label>
         <div class="range-row">
-       <select id="musicOn"><option value="1" selected>On</option><option value="0">Off</option></select>
-
+          <!-- Default ON -->
+          <select id="musicOn"><option value="1" selected>On</option><option value="0">Off</option></select>
           <span class="chip">Vol</span>
         </div>
         <input id="musicVol" type="range" min="0" max="1" step="0.01" value="0.35" />
@@ -218,8 +218,7 @@
   <audio id="bgm" src="" loop preload="auto"></audio>
   <audio id="sndCorrect" src="sounds/correct.mp3" preload="auto"></audio>
   <audio id="sndWrong"   src="sounds/wrong.mp3"   preload="auto"></audio>
-  <audio id="sndFinish" src="sounds/finish.mp3" preload="auto"></audio>
-
+  <audio id="sndFinish"  src="sounds/finish.mp3"  preload="auto"></audio>
 
 <script>
 (function(){
@@ -241,7 +240,19 @@
     const pick = MUSIC_TRACKS[Math.floor(Math.random()*MUSIC_TRACKS.length)];
     BGM.src = "sounds/" + pick;
     console.log('BGM src:', BGM.src);
-
+  }
+  function attemptAutoplay(){
+    BGM.volume = +elMusicVol.value;
+    BGM.play().catch(() => {
+      const resume = () => {
+        if (AC && AC.state === 'suspended') AC.resume();
+        BGM.play().catch(()=>{});
+        document.removeEventListener('pointerdown', resume);
+        document.removeEventListener('keydown', resume);
+      };
+      document.addEventListener('pointerdown', resume, { once:true });
+      document.addEventListener('keydown',   resume, { once:true });
+    });
   }
 
   // ===== DOM =====
@@ -251,8 +262,8 @@
   var elRounds=$('#rounds'), elPlayers=$('#players');
 
   var elMusicOn=$('#musicOn'), elMusicVol=$('#musicVol'), BGM=$('#bgm');
-  var elSoundOn=$('#soundOn'), elVol=$('#volume'), SND_OK=$('#sndCorrect'), SND_NO=$('#sndWrong');
-    var SND_FINISH = $('#sndFinish');
+  var elSoundOn=$('#soundOn'), elVol=$('#volume'),
+      SND_OK=$('#sndCorrect'), SND_NO=$('#sndWrong'), SND_FINISH=$('#sndFinish');
 
   var elStart=$('#btnStart'), elReset=$('#btnReset');
   var elSingle=$('#singleRows'), elMulti=$('#multiRows');
@@ -312,15 +323,15 @@
   function updateMusic(){
     BGM.volume=+elMusicVol.value;
     if(elMusicOn.value==="1"){
-      BGM.play().catch(function(){ /* user gesture will come on Start */ });
+      BGM.play().catch(function(){});
     }else{
-      BGM.pause(); BGM.currentTime=0;
+      BGM.pause();
     }
   }
   elMusicOn.addEventListener('change',updateMusic);
   elMusicVol.addEventListener('input',updateMusic);
 
-  // ===== Sound FX =====
+  // ===== Sound FX (oscillator + file playback) =====
   var AC=(window.AudioContext||window.webkitAudioContext)? new (window.AudioContext||window.webkitAudioContext)() : null;
   var master=AC? AC.createGain():null; if(master){ master.connect(AC.destination); master.gain.value=+elVol.value; }
   function soundOn(){ return elSoundOn.value==="1"; }
@@ -348,7 +359,7 @@
     timeout:function(){ [523,392,330].forEach(function(f,i){tone(f,0.12,'sine',i*0.09,0.22);}); }
   };
 
-  // ===== Math =====
+  // ===== Helpers =====
   function clamp(n,a,b){return Math.min(Math.max(n,a),b);}
   function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
   function pickOp(m){return m!=='mix'?m:['add','sub','mul','div'][rnd(0,3)];}
@@ -367,17 +378,7 @@
     div:{gen:function(L){var r=rangeFor('div',L),b=rnd(r.min,r.max),q=rnd(r.min,r.max),a=b*q;return {text:a+" ÷ "+b,answer:q};}}
   };
 
-  // ===== Helpers =====
-  function flash(el,list,hold){
-    hold = hold||600;
-    var pick=list[rnd(0,list.length-1)];
-    (el===fxGood?fxGoodImg:fxBadImg).src=pick;
-    el.classList.add('show'); setTimeout(function(){el.classList.remove('show');},hold);
-  }
-  function accuracy(){ var t=good+bad; return !t?'—':Math.round((good/t)*100); }
-  function updateStats(){ /* UI removed */ }
-
-  // banner + active row
+  // ===== UI mode / turn handling =====
   function activeName(){ return turn==='p1' ? NAME_P1 : NAME_P2; }
   function updateTurnBanner(){ elTurn.textContent = elPlayers.value==='2' ? ('Turn: '+activeName()) : '—'; }
   function setRowVis(){
@@ -387,8 +388,6 @@
     elP1.disabled=!p1Active; elP2.disabled=p1Active;
     (p1Active?elP1:elP2).focus();
   }
-
-  // ===== UI mode =====
   function uiMode(){
     var two = elPlayers.value==="2";
     elSingle.style.display = two ? 'none':'grid';
@@ -403,7 +402,6 @@
   }
   elPlayers.addEventListener('change',uiMode);
 
-  // ===== Turn overlay (hand-off) =====
   function showTurnOverlay(){
     if(elPlayers.value!=='2') return;
     overlayText.textContent = 'Next up: ' + activeName();
@@ -414,10 +412,12 @@
     awaitingTurnStart = true;
   }
   function hideTurnOverlay(){ overlay.classList.remove('show'); awaitingTurnStart=false; }
+
+  // Handoff: re-roll music
   btnBeginTurn.addEventListener('click', function(){
     hideTurnOverlay();
     setRandomBgm();
-    if(elMusicOn.value==="1"){ try{ BGM.volume=+elMusicVol.value; BGM.play(); }catch(e){} }
+    attemptAutoplay();
     qCount = 0; elQIndex.textContent = '0';
     setRowVis();
     next(true);
@@ -436,17 +436,19 @@
     running=true; qCount=0; good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     elStart.textContent='Running…'; elStart.disabled=true;
 
+    // Match start: re-roll music
+    setRandomBgm();
+    attemptAutoplay();
+
     if(elPlayers.value==="2"){
       turn = (Math.random()<0.5)?'p1':'p2';
       updateTurnBanner();
       qCount = 0; elQIndex.textContent = '0';
       showTurnOverlay();
     }else{
-      setRandomBgm();
       elAns1.disabled=false; next(true); elAns1.focus();
-      if(elMusicOn.value==="1"){ try{ BGM.play(); }catch(e){} }
     }
-    updateStats(); uiMode();
+    uiMode();
   }
   function reset(){
     stopTimer(); running=false; current=null; qCount=good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
@@ -456,10 +458,9 @@
     elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
     elQIndex.textContent='0';
     overlay.classList.remove('show'); awaitingTurnStart=false;
-    try{ BGM.pause(); BGM.currentTime=0; }catch(e){}
+    // NOTE: do not pause BGM here
   }
 
-  // Fix: single-player stops after selected rounds
   function next(initial){
     if(awaitingTurnStart) return;
     stopTimer();
@@ -488,6 +489,8 @@
   }
 
   function finish(){
+    // optional finish SFX
+    if (SND_FINISH) { try { SND_FINISH.currentTime = 0; SND_FINISH.play(); } catch(e){} }
     stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
 
     var scoreLine = '';
@@ -511,9 +514,7 @@
     elFeedback.textContent=' ';
     elFeedback.className='feedback';
 
-    try{ if(BGM){ BGM.pause(); } }catch(e){}
-    if (SND_FINISH) { try { SND_FINISH.currentTime = 0; SND_FINISH.play(); } catch(e){} }
-
+    // NOTE: do not pause BGM here
     showFinal(scoreLine);
   }
 
@@ -539,12 +540,10 @@
       sfx.correct(); flash(fxGood, GOOD_IMGS, 400);
 
       consumeRound();
-      updateStats();
       setTimeout(function(){ next(); }, 180);
       return;
     }
 
-    // WRONG → mark + advance
     bad++;
     if (who === 'p1'){ p1.no++; elP1Score.textContent = p1.ok + ' / ' + p1.no; elLead.textContent = leadText(); }
     if (who === 'p2'){ p2.no++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
@@ -553,7 +552,6 @@
     sfx.wrong(); flash(fxBad, BAD_IMGS, 450);
 
     consumeRound();
-    updateStats();
     setTimeout(function(){ next(); }, 200);
   }
 
@@ -563,7 +561,6 @@
     bad++;
     elFeedback.textContent='⏭ Skipped';
     elFeedback.className='feedback no';
-    updateStats();
     flash(fxBad, BAD_IMGS, 300);
     consumeRound();
     next();
@@ -577,7 +574,7 @@
     tick=setInterval(function(){
       remaining--;
       if(remaining>0){ sfx.tick(); renderTimer(); return; }
-      bad++; updateStats();
+      bad++;
       elFeedback.textContent='Time out — next!'; elFeedback.className='feedback no';
       sfx.timeout(); flash(fxBad,BAD_IMGS,700);
       consumeRound(); next();
@@ -613,12 +610,19 @@
     inp.addEventListener('input',function(){ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); });
   });
 
-  // init
-  updateMusic();
+  // ===== Init (app load): pick & start music immediately =====
+  setRandomBgm();
+  attemptAutoplay();
+
+  // init visuals
   fxGoodImg.src = GOOD_CANDIDATES[0];
   fxBadImg.src  = BAD_CANDIDATES[0];
-
-  reset(); uiMode();
+  // UI reset
+  stopTimer(); running=false; current=null; qCount=0;
+  elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
+  elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
+  elQIndex.textContent='0';
+  uiMode();
 })();
 </script>
 </body>
