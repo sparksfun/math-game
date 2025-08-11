@@ -219,6 +219,10 @@
   <audio id="sndCorrect" src="sounds/correct.mp3" preload="auto"></audio>
   <audio id="sndWrong"   src="sounds/wrong.mp3"   preload="auto"></audio>
   <audio id="sndFinish"  src="sounds/finish.mp3"  preload="auto"></audio>
+  <!-- NEW: UI action sounds -->
+  <audio id="sndStart"   src="sounds/start.mp3"   preload="auto"></audio>
+  <audio id="sndSingle"  src="sounds/single.mp3"  preload="auto"></audio>
+  <audio id="sndHead"    src="sounds/head2head.mp3" preload="auto"></audio>
 
 <script>
 (function(){
@@ -264,6 +268,8 @@
   var elMusicOn=$('#musicOn'), elMusicVol=$('#musicVol'), BGM=$('#bgm');
   var elSoundOn=$('#soundOn'), elVol=$('#volume'),
       SND_OK=$('#sndCorrect'), SND_NO=$('#sndWrong'), SND_FINISH=$('#sndFinish');
+  // NEW: UI action sounds
+  var SND_START=$('#sndStart'), SND_SINGLE=$('#sndSingle'), SND_HEAD=$('#sndHead');
 
   var elStart=$('#btnStart'), elReset=$('#btnReset');
   var elSingle=$('#singleRows'), elMulti=$('#multiRows');
@@ -400,7 +406,13 @@
     updateTurnBanner();
     if(two) setRowVis();
   }
-  elPlayers.addEventListener('change',uiMode);
+
+  // NEW: play audio when player mode changes
+  elPlayers.addEventListener('change', function(){
+    if (elPlayers.value === "1") playAudio(SND_SINGLE);
+    else if (elPlayers.value === "2") playAudio(SND_HEAD);
+    uiMode();
+  });
 
   function showTurnOverlay(){
     if(elPlayers.value!=='2') return;
@@ -435,6 +447,9 @@
     if(AC && AC.state==='suspended'){ AC.resume(); }
     running=true; qCount=0; good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     elStart.textContent='Running…'; elStart.disabled=true;
+
+    // NEW: start button sound
+    playAudio(SND_START);
 
     // Match start: re-roll music
     setRandomBgm();
