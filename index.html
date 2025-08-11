@@ -218,6 +218,8 @@
   <audio id="bgm" src="" loop preload="auto"></audio>
   <audio id="sndCorrect" src="sounds/correct.mp3" preload="auto"></audio>
   <audio id="sndWrong"   src="sounds/wrong.mp3"   preload="auto"></audio>
+  <audio id="sndFinish" src="sounds/finish.mp3" preload="auto"></audio>
+
 
 <script>
 (function(){
@@ -264,6 +266,8 @@
   var elLblP1=$('#lblP1'), elLblP2=$('#lblP2'), elTurn=$('#turnBanner');
 
   var fxGood=$('#fxGood'), fxBad=$('#fxBad'), fxGoodImg=$('#fxGoodImg'), fxBadImg=$('#fxBadImg');
+  
+  var SND_FINISH = $('#sndFinish');
 
   // Turn overlay
   var overlay=$('#turnOverlay'), overlayText=$('#turnText'), overlayAvatar=$('#turnAvatar'), btnBeginTurn=$('#btnBeginTurn');
@@ -509,6 +513,8 @@
     elFeedback.className='feedback';
 
     try{ if(BGM){ BGM.pause(); } }catch(e){}
+    if (SND_FINISH) { try { SND_FINISH.currentTime = 0; SND_FINISH.play(); } catch(e){} }
+
     showFinal(scoreLine);
   }
 
