@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>  
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -312,6 +312,9 @@
   var awaitingTurnStart=false;
 
   // ===== preload & filter available images =====
+  // 1x1 transparent PNG fallback
+  var BLANK_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
+
   function filterExisting(candidates, cb){
     var out=[], i=0;
     function tryNext(){
@@ -322,8 +325,8 @@
     }
     tryNext();
   }
-  filterExisting(GOOD_CANDIDATES,function(arr){ GOOD_IMGS=arr.length?arr:GOOD_CANDIDATES.slice(0,1); fxGoodImg.src=GOOD_IMGS[0]; });
-  filterExisting(BAD_CANDIDATES, function(arr){ BAD_IMGS =arr.length?arr:BAD_CANDIDATES.slice(0,1);  fxBadImg.src =BAD_IMGS[0]; });
+  filterExisting(GOOD_CANDIDATES,function(arr){ GOOD_IMGS=arr.length?arr:[BLANK_IMG]; fxGoodImg.src=GOOD_IMGS[0]; });
+  filterExisting(BAD_CANDIDATES, function(arr){ BAD_IMGS =arr.length?arr:[BLANK_IMG];  fxBadImg.src =BAD_IMGS[0]; });
 
   // ===== Music =====
   function updateMusic(){
@@ -366,6 +369,26 @@
   };
 
   // ===== Helpers =====
+  // SAFE flash: never throw even if images missing
+  function flash(el, list, hold){
+    hold = hold || 600;
+    try{
+      if(!list || !list.length){
+        el.classList.add('show');
+        setTimeout(function(){ el.classList.remove('show'); }, hold);
+        return;
+      }
+      var imgEl = (el === fxGood ? fxGoodImg : fxBadImg);
+      var pick  = list[Math.floor(Math.random() * list.length)] || BLANK_IMG;
+      imgEl.src = pick;
+      el.classList.add('show');
+      setTimeout(function(){ el.classList.remove('show'); }, hold);
+    }catch(e){
+      el.classList.add('show');
+      setTimeout(function(){ el.classList.remove('show'); }, hold);
+    }
+  }
+
   function clamp(n,a,b){return Math.min(Math.max(n,a),b);}
   function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
   function pickOp(m){return m!=='mix'?m:['add','sub','mul','div'][rnd(0,3)];}
@@ -407,7 +430,7 @@
     if(two) setRowVis();
   }
 
-  // NEW: play audio when player mode changes
+  // Play audio when player mode changes
   elPlayers.addEventListener('change', function(){
     if (elPlayers.value === "1") playAudio(SND_SINGLE);
     else if (elPlayers.value === "2") playAudio(SND_HEAD);
@@ -448,7 +471,7 @@
     running=true; qCount=0; good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     elStart.textContent='Running…'; elStart.disabled=true;
 
-    // NEW: start button sound
+    // start button sound
     playAudio(SND_START);
 
     // Match start: re-roll music
