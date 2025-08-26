@@ -236,6 +236,9 @@
   const NAME_P1 = 'Aliah';
   const NAME_P2 = 'Aliana';
 
+  // Minimum on-screen time (ms) for STILL images on yay/nay overlays
+  const STILL_MIN_MS = 1600;
+
   // --- Music pool (filenames inside /sounds) ---
   const MUSIC_TRACKS = [
     "Confused and Angry Robots.mp3",
@@ -395,21 +398,18 @@
       const dv = new DataView(buf);
       const len = dv.byteLength;
       let totalCs = 0; // hundredths of a second
-      // Scan for Graphic Control Extension blocks: 21 F9 04 .. delay(2) ..
       for (let i=0; i < len - 9; i++){
         if (dv.getUint8(i)===0x21 && dv.getUint8(i+1)===0xF9 && dv.getUint8(i+2)===0x04){
-          let delayCs = dv.getUint16(i+4, true); // little-endian
-          // browsers clamp tiny/zero delays; use >= 3 cs (30ms) min
-          if (delayCs < 3) delayCs = 10; // 100ms conservative fallback
+          let delayCs = dv.getUint16(i+4, true);
+          if (delayCs < 3) delayCs = 10; // 100ms fallback
           totalCs += delayCs;
-          i += 7; // skip rest of this GCE
+          i += 7;
         }
       }
-      // Fallback if not animated or no delays found
       if (totalCs === 0) return 2500;
-      return totalCs * 10; // convert to ms
+      return totalCs * 10;
     }catch(e){
-      return 2500; // safe default on errors
+      return 2500;
     }
   }
 
@@ -420,30 +420,34 @@
     el._hideTimer = setTimeout(function(){ el.classList.remove('show'); el._hideTimer=null; }, ms);
   }
 
+  // EXTENDED hold for still images on yay/nay overlays
   function flash(el, list, hold){
     hold = hold || 600;
+    var imgEl = (el === fxGood ? fxGoodImg : fxBadImg);
+    var pick  = (list && list.length) ? list[Math.floor(Math.random() * list.length)] : BLANK_IMG;
+
     try{
-      var imgEl = (el === fxGood ? fxGoodImg : fxBadImg);
-      var pick  = (list && list.length) ? list[Math.floor(Math.random() * list.length)] : BLANK_IMG;
       imgEl.src = pick;
 
       // Show now
       el.classList.add('show');
       el._shownAt = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
 
-      // Provisional hide using passed hold
+      // If it's a STILL image (not a GIF) and this is a yay/nay overlay, enforce a longer minimum.
+      if (!isGif(pick) && (el === fxGood || el === fxBad)) {
+        scheduleHide(el, Math.max(hold, STILL_MIN_MS));
+        return;
+      }
+
+      // Provisional hide using passed hold (for GIFs or other cases)
       scheduleHide(el, hold);
 
-      // For still images, we're done.
-      if (!isGif(pick)) return;
-
-      // If user provided explicit override, prefer it.
+      // If user provided explicit GIF override, prefer it.
       var override = gifHoldFromName(pick);
       var token = Math.random(); // guard against race with subsequent flashes
       el._flashToken = token;
 
       if (override != null){
-        // Extend if needed
         var now = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
         var elapsed = now - (el._shownAt || now);
         var desired = Math.max(hold, override);
@@ -453,21 +457,21 @@
       }
 
       // Compute true GIF duration and extend accordingly
-      computeGifDurationMs(pick).then(function(msGif){
-        if (el._flashToken !== token) return; // stale
-        var now = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
-        var elapsed = now - (el._shownAt || now);
-        var desired = Math.max(hold, (msGif||2500) + 150); // small pad to finish last frame
-        var remaining = Math.max(0, desired - elapsed);
-        scheduleHide(el, remaining);
-      });
+      if (isGif(pick)) {
+        computeGifDurationMs(pick).then(function(msGif){
+          if (el._flashToken !== token) return; // stale
+          var now = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
+          var elapsed = now - (el._shownAt || now);
+          var desired = Math.max(hold, (msGif||2500) + 150); // pad to finish last frame
+          var remaining = Math.max(0, desired - elapsed);
+          scheduleHide(el, remaining);
+        });
+      }
     }catch(e){
+      // Fallback path keeps STILL images on-screen longer.
       el.classList.add('show');
-      // Provisional hide: make stills linger, leave GIFs as-is
-var baseHold = (!isGif(pick) && (el === fxGood || el === fxBad)) ? Math.max(hold, 1500) : hold;
-//              ^ only still images on yay/nay overlays get at least 1500ms
-scheduleHide(el, baseHold);
-
+      var baseHold = (!isGif(pick) && (el === fxGood || el === fxBad)) ? Math.max(hold, STILL_MIN_MS) : hold;
+      scheduleHide(el, baseHold);
     }
   }
 
@@ -605,7 +609,7 @@ scheduleHide(el, baseHold);
     qCount++;
     var mode=pickOp(elMode.value), L=+elDiff.value;
     current=ops[mode].gen(L);
-   elFormula.textContent = current.text;
+    elFormula.textContent = current.text;
     elQIndex.textContent=qCount;
     [elAns1,elP1,elP2].forEach(function(i){i.value='';});
     elFeedback.textContent=' '; elFeedback.className='feedback';
