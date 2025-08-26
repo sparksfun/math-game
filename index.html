@@ -1,236 +1,3 @@
-
-<!DOCTYPE html>  
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Math Sprint — Head-to-Head</title>
-<style>
-  :root{--bg:#0f1220;--panel:#161a2e;--ink:#e9ecf1;--muted:#aab3c5;--good:#38d39f;--bad:#ff6b6b;--warn:#ffb020;--chip:#232843}
-  *{box-sizing:border-box} html,body{height:100%}
-  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:radial-gradient(1200px 800px at 10% -10%,#1b2142 0%,var(--bg) 55%);color:var(--ink);display:grid;place-items:start stretch}
-  .wrap {width: 100%; margin: 28px 0 56px;}
-
-  header{display:grid;gap:12px;grid-template-columns:1fr auto;align-items:start;margin-bottom:16px}
-  h1{font-weight:800;margin:0;letter-spacing:.2px;font-size:clamp(20px,2.8vw,28px)}
-
-  .controls{display:grid;gap:10px;padding:14px;background:color-mix(in oklab,var(--panel),#000 6%);border:1px solid #262b4a;border-radius:14px;grid-template-columns:repeat(8,minmax(0,1fr));align-items:end}
-  .group{display:grid;gap:6px} label{font-size:12px;color:var(--muted);letter-spacing:.2px}
-  select,input[type="range"],input[type="text"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2c335a;background:#0e1330;color:var(--ink);outline:none}
-  .range-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
-  .chip{background:var(--chip);border:1px solid #2b3155;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
-
-  .btn{appearance:none;border:1px solid #2c335a;background:linear-gradient(180deg,#1e2550,#141a3b);color:#fff;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;letter-spacing:.2px;transition:transform .03s ease,filter .15s ease,border-color .15s ease}
-  .btn:hover{filter:brightness(1.08);border-color:#3a4381} .btn:active{transform:translateY(1px) scale(.997)}
-  .btn.ghost{background:#0e1330;color:var(--muted)} .btn.good{background:linear-gradient(180deg,#16553f,#103c2d);border-color:#1f6b4f;color:#d3ffe9}
-
-  .grid {display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: stretch; }
-  .card{background:var(--panel);border:1px solid #262b4a;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-  .problem{position:relative;display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
- .formula {
-  font-size:64px;/* keep large font */font-weight:800;letter-spacing:1px;margin-top:40px;/* push down */ margin-left:40px;/* move left */}
-
-
-  .timer-mini{position:absolute;top:12px;left:12px;width:88px;height:88px;display:grid;place-items:center;background:#0e1330;border:1px solid #2b3155;border-radius:12px;font-weight:800;letter-spacing:.5px;font-size:20px;box-shadow:0 6px 20px rgba(0,0,0,.35);}
-
-.answer-rows {display:flex;flex-direction:column;justify-content:flex-end; height:100%;}
-
-  .row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
-  .row input{padding:12px 14px;border-radius:12px;border:1px solid #2c335a;outline:none;background:#0e1330;color:#fff;font-size:clamp(18px,2.2vw,22px);text-align:center;letter-spacing:.5px}
-  .p1{border-left:4px solid #6bd3ff;padding-left:8px;border-radius:10px}
-  .p2{border-left:4px solid #ffb86b;padding-left:8px;border-radius:10px}
-  .avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid #2b3155}
-  .hidden{display:none !important}
-
-  .feedback{height:28px;font-weight:700;letter-spacing:.3px}
-  .feedback.ok{color:var(--good)} .feedback.no{color:var(--bad)}
-
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-  .stat{background:#0e1330;border:1px solid #2b3155;border-radius:12px;padding:10px 12px;display:grid;gap:4px} .stat b{font-size:22px}
-
-  .fx-overlay{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .25s ease;z-index:999}
-  .fx-overlay.show{opacity:1}
-  .fx-overlay img{max-width:min(60vmin,520px);max-height:70vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.55);border:2px solid #2b3155}
-
-  .turn-overlay{position:fixed;inset:0;background:rgba(5,8,20,.88);backdrop-filter:blur(6px);display:grid;place-items:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s ease}
-  .turn-overlay.show{opacity:1;pointer-events:auto}
-  .turn-card{background:var(--panel);border:1px solid #2b3155;border-radius:18px;padding:28px;display:grid;gap:14px;place-items:center;box-shadow:0 20px 60px rgba(0,0,0,.45)}
-  .turn-card h2{margin:0;font-size:clamp(20px,3.2vw,28px)}
-  .turn-avatar{width:min(22vmin,140px);height:min(22vmin,140px);border-radius:50%;object-fit:cover;border:2px solid #2b3155}
-
-  footer{margin-top:14px;color:var(--muted);font-size:12px;display:flex;gap:12px;align-items:center}
-
-  @media (max-width:1200px){ .controls{grid-template-columns:repeat(4,minmax(0,1fr));} }
-  @media (max-width:860px){ .controls{grid-template-columns:1fr 1fr} .grid{grid-template-columns:1fr} }
-  @media (max-width:700px){ .controls{grid-template-columns:1fr;} }
-
-  .final-overlay{position:fixed;inset:0;background:rgba(5,8,20,.88);backdrop-filter:blur(6px);
-    display:grid;place-items:center;z-index:1100;opacity:0;pointer-events:none;transition:opacity .2s ease}
-  .final-overlay.show{opacity:1;pointer-events:auto}
-  .final-card{background:var(--panel);border:1px solid #2b3155;border-radius:20px;padding:30px 28px;
-    display:grid;gap:14px;place-items:center;box-shadow:0 24px 64px rgba(0,0,0,.5);max-width:min(90vw,780px)}
-  .final-card h2{margin:0;font-size:clamp(18px,2.6vw,26px);color:var(--muted)}
-  .final-score{font-weight:900;letter-spacing:.3px;text-align:center;
-    font-size:clamp(28px,4.8vw,56px);line-height:1.15}
-</style>
-</head>
-<body>
-  <div class="wrap">
-    <header>
-      <h1>Math Sprint</h1>
-      <div style="display:flex;gap:10px">
-        <button id="btnStart" class="btn good">Start ▶</button>
-        <button id="btnReset" class="btn ghost">Reset ⟲</button>
-      </div>
-    </header>
-
-    <section class="controls">
-      <div class="group">
-        <label>Mode</label>
-        <select id="mode">
-          <option value="add">Add (+)</option>
-          <option value="sub">Subtract (−)</option>
-          <option value="mul">Multiply (×)</option>
-          <option value="div">Divide (÷)</option>
-          <option value="mix" selected>Mix</option>
-        </select>
-      </div>
-      <div class="group">
-        <label>Difficulty (1–10)</label>
-        <div class="range-row">
-          <input id="difficulty" type="range" min="1" max="10" value="3" />
-          <span id="diffVal" class="chip">3</span>
-        </div>
-      </div>
-      <div class="group">
-        <label>Timer / Q (0=off)</label>
-        <div class="range-row">
-          <input id="timerSec" type="range" min="0" max="60" value="10" />
-          <span id="timerVal" class="chip">10s</span>
-        </div>
-      </div>
-      <div class="group">
-        <label>Rounds per player</label>
-        <select id="rounds"><option>5</option><option selected>10</option><option>15</option><option>20</option></select>
-      </div>
-      <div class="group">
-        <label>Players</label>
-        <select id="players">
-          <option value="1" selected>Single</option>
-          <option value="2">Head-to-Head (2)</option>
-        </select>
-      </div>
-
-      <!-- Audio controls -->
-      <div class="group">
-        <label>Music</label>
-        <div class="range-row">
-          <!-- Default ON -->
-          <select id="musicOn"><option value="1" selected>On</option><option value="0">Off</option></select>
-          <span class="chip">Vol</span>
-        </div>
-        <input id="musicVol" type="range" min="0" max="1" step="0.01" value="0.35" />
-      </div>
-      <div class="group">
-        <label>Sound FX</label>
-        <div class="range-row">
-          <select id="soundOn"><option value="1" selected>On</option><option value="0">Off</option></select>
-          <span class="chip">Vol</span>
-        </div>
-        <input id="volume" type="range" min="0" max="1" step="0.01" value="0.5" />
-      </div>
-
-      <div class="group">
-        <label>&nbsp;</label>
-        <span class="chip">Start turn: Space/Enter • Submit: Enter • Skip: S</span>
-      </div>
-    </section>
-
-    <section class="grid" style="margin-top:16px">
-      <div class="card">
-        <div class="problem" id="problem">
-          <!-- INLINE TIMER (upper-left of the problem area) -->
-          <div class="timer-mini" id="timerMini" aria-live="polite">Timer: off</div>
-
-          <div class="turn" id="turnBanner">—</div>
-          <div id="formula" class="formula">—</div>
-
-          <!-- single player -->
-          <div id="singleRows" class="answer-rows" style="display:grid">
-            <div class="row">
-              <img id="soloAvatar" class="avatar hidden" alt="">
-              <input id="answer1" class="p1" type="text" inputmode="numeric" placeholder="Your answer…" disabled />
-              <button id="btnSubmit1" class="btn">Submit ⏎</button>
-            </div>
-          </div>
-
-          <!-- multiplayer (only active row shown) -->
-          <div id="multiRows" class="answer-rows" style="display:none">
-            <div class="row" id="rowP1">
-              <img id="avatarP1" class="avatar" src="players/p1.png" alt="P1" onerror="this.style.display='none'">
-              <input id="answerP1" class="p1" type="text" inputmode="numeric" placeholder="Aliah…" disabled />
-              <button id="btnSubmitP1" class="btn">Submit</button>
-            </div>
-            <div class="row" id="rowP2">
-              <img id="avatarP2" class="avatar" src="players/p2.png" alt="P2" onerror="this.style.display='none'">
-              <input id="answerP2" class="p2" type="text" inputmode="numeric" placeholder="Aliana…" disabled />
-              <button id="btnSubmitP2" class="btn">Submit</button>
-            </div>
-          </div>
-
-          <div id="feedback" class="feedback">&nbsp;</div>
-        </div>
-
-        <!-- per-player stats -->
-        <div id="versus" class="stats" style="display:none">
-          <div class="stat"><label id="lblP1">Aliah ✓ / ✗</label><b id="p1Score">0 / 0</b></div>
-          <div class="stat"><label id="lblP2">Aliana ✓ / ✗</label><b id="p2Score">0 / 0</b></div>
-          <div class="stat"><label>Lead</label><b id="lead">—</b></div>
-        </div>
-
-        <footer>Shortcuts: Start turn (Space/Enter) • Submit (Enter) • Esc clear • S skip</footer>
-      </div>
-
-      <!-- Right card now only shows the question index -->
-      <div class="card">
-        <div class="stat"><label>Question</label><b id="qIndex">0</b></div>
-      </div>
-    </section>
-  </div>
-
-  <!-- result overlays -->
-  <div id="fxGood" class="fx-overlay"><img id="fxGoodImg" alt="Correct"></div>
-  <div id="fxBad"  class="fx-overlay"><img id="fxBadImg"  alt="Incorrect"></div>
-
-  <!-- Turn overlay -->
-  <div id="turnOverlay" class="turn-overlay">
-    <div class="turn-card">
-      <img id="turnAvatar" class="turn-avatar" alt="">
-      <h2 id="turnText">Next up: —</h2>
-      <button id="btnBeginTurn" class="btn good">Start turn ▶</button>
-      <div class="chip">or press Space / Enter</div>
-    </div>
-  </div>
-
-  <!-- Final Result overlay -->
-  <div id="finalOverlay" class="final-overlay" aria-hidden="true">
-    <div id="finalCard" class="final-card">
-      <h2>Session complete</h2>
-      <div id="finalScore" class="final-score">—</div>
-      <button id="finalClose" class="btn">Close ✕</button>
-    </div>
-  </div>
-
-  <!-- Audio elements -->
-  <audio id="bgm" src="" loop preload="auto"></audio>
-  <audio id="sndCorrect" src="sounds/correct.mp3" preload="auto"></audio>
-  <audio id="sndWrong"   src="sounds/wrong.mp3"   preload="auto"></audio>
-  <audio id="sndFinish"  src="sounds/finish.mp3"  preload="auto"></audio>
-  <!-- NEW: UI action sounds -->
-  <audio id="sndStart"   src="sounds/start.mp3"   preload="auto"></audio>
-  <audio id="sndSingle"  src="sounds/single.mp3"  preload="auto"></audio>
-  <audio id="sndHead"    src="sounds/head2head.mp3" preload="auto"></audio>
-
 <script>
 (function(){
   // ===== Constants =====
@@ -305,7 +72,7 @@
   window.addEventListener('keydown', function(e){ if(e.key==='Escape') hideFinal(); });
 
   // ===== State =====
-  var GOOD_CANDIDATES=["images/giftest.gif","images/Macky-Correct-2.jpg","images/IMG-20250628-WA0014[1].png","images/correct.png","images/correct1.webp","images/correct.webp"];
+  var GOOD_CANDIDATES=["images/Macky-Correct-2.jpg","images/IMG-20250628-WA0014[1].png","images/correct.png","images/correct1.webp"];
   var BAD_CANDIDATES =["images/Macky-Incorrect-1.png","images/wrong.png","images/wrong1.webp"];
   var GOOD_IMGS=[], BAD_IMGS=[];
   var P1_IMG="players/p1.png";
@@ -375,20 +142,104 @@
     timeout:function(){ [523,392,330].forEach(function(f,i){tone(f,0.12,'sine',i*0.09,0.22);}); }
   };
 
+  // ===== GIF duration helper (auto-hold for GIFs only) =====
+  var GIF_CACHE = Object.create(null);
+  function isGif(src){ return /\.gif(?:$|\?)/i.test(src); }
+
+  async function getGifDurationMs(url){
+    if (GIF_CACHE[url]) return GIF_CACHE[url];
+    const resp = await fetch(url, {cache:'force-cache'});
+    const buf = await resp.arrayBuffer();
+    const u = new Uint8Array(buf);
+
+    // Parse minimal GIF: sum frame delays from Graphic Control Extensions
+    let p = 0, totalCs = 0, gceDelayCs = 0;
+    // Header "GIF87a"/"GIF89a"
+    p += 6;
+    if (p+7 > u.length) return (GIF_CACHE[url] = 1000);
+    // Logical Screen Descriptor
+    const packedLSD = u[p+4];
+    p += 7;
+    // Global Color Table
+    if (packedLSD & 0x80){
+      const gctSize = 3 * (1 << ((packedLSD & 0x07) + 1));
+      p += gctSize;
+    }
+    // Blocks
+    while (p < u.length){
+      const b = u[p++];
+      if (b === 0x3B) break; // trailer
+      if (b === 0x21){ // extension
+        const label = u[p++];
+        if (label === 0xF9){ // GCE
+          const blockSize = u[p++]; // should be 4
+          if (blockSize >= 4){
+            const packed = u[p]; // not used
+            const delayLo = u[p+1], delayHi = u[p+2];
+            const delayCs = (delayHi << 8) | delayLo; // centiseconds
+            // Some encoders use 0; clamp to a sensible minimum (3 cs = 30ms)
+            gceDelayCs = Math.max(delayCs, 3);
+          }
+          p += blockSize;
+          p++; // block terminator
+        } else {
+          // skip generic extension sub-blocks
+          while (true){
+            const sz = u[p++];
+            if (sz === 0) break;
+            p += sz;
+          }
+        }
+      } else if (b === 0x2C){ // image descriptor = frame
+        // consume image descriptor (10 bytes)
+        if (p+9 > u.length) break;
+        const packedID = u[p+8];
+        p += 9;
+        // local color table
+        if (packedID & 0x80){
+          const lctSize = 3 * (1 << ((packedID & 0x07) + 1));
+          p += lctSize;
+        }
+        // LZW min code size
+        p++;
+        // image data sub-blocks
+        while (true){
+          const sz = u[p++];
+          if (sz === 0) break;
+          p += sz;
+        }
+        // add last seen GCE delay for this frame
+        totalCs += (gceDelayCs || 3);
+      } else {
+        // unknown block: bail
+        break;
+      }
+    }
+    // Convert centiseconds -> ms; clamp to 600ms min to avoid instant hide on tiny gifs
+    const ms = Math.max(totalCs * 10, 600);
+    GIF_CACHE[url] = ms;
+    return ms;
+  }
+
   // ===== Helpers =====
-  function flash(el, list, hold){
+  // NOTE: flash() now auto-extends hold *only for GIFs* by parsing their duration.
+  async function flash(el, list, hold){
     hold = hold || 600;
     try{
-      if(!list || !list.length){
-        el.classList.add('show');
-        setTimeout(function(){ el.classList.remove('show'); }, hold);
-        return;
-      }
       var imgEl = (el === fxGood ? fxGoodImg : fxBadImg);
-      var pick  = list[Math.floor(Math.random() * list.length)] || BLANK_IMG;
+      var pick  = (list && list.length) ? list[Math.floor(Math.random() * list.length)] : BLANK_IMG;
       imgEl.src = pick;
       el.classList.add('show');
-      setTimeout(function(){ el.classList.remove('show'); }, hold);
+
+      var ms = hold;
+      if (isGif(pick)){
+        try {
+          const gifMs = await getGifDurationMs(pick);
+          // Use the longer of requested hold and GIF duration (+ small buffer)
+          ms = Math.max(hold, gifMs + 150);
+        } catch(_) { /* fall back to hold */ }
+      }
+      setTimeout(function(){ el.classList.remove('show'); }, ms);
     }catch(e){
       el.classList.add('show');
       setTimeout(function(){ el.classList.remove('show'); }, hold);
@@ -529,7 +380,7 @@
     qCount++;
     var mode=pickOp(elMode.value), L=+elDiff.value;
     current=ops[mode].gen(L);
-   elFormula.textContent = current.text;
+    elFormula.textContent = current.text;
     elQIndex.textContent=qCount;
     [elAns1,elP1,elP2].forEach(function(i){i.value='';});
     elFeedback.textContent=' '; elFeedback.className='feedback';
@@ -670,5 +521,3 @@
   uiMode();
 })();
 </script>
-</body>
-</html>
