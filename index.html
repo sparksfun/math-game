@@ -463,7 +463,11 @@
       });
     }catch(e){
       el.classList.add('show');
-      scheduleHide(el, hold);
+      // Provisional hide: make stills linger, leave GIFs as-is
+var baseHold = (!isGif(pick) && (el === fxGood || el === fxBad)) ? Math.max(hold, 1500) : hold;
+//              ^ only still images on yay/nay overlays get at least 1500ms
+scheduleHide(el, baseHold);
+
     }
   }
 
@@ -655,7 +659,7 @@
       if (who === 'p2'){ p2.ok++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
       elFeedback.textContent = (who==='solo' ? 'Correct!' : (activeName() + ' scores!'));
       elFeedback.className = 'feedback ok';
-      sfx.correct(); flash(fxGood, GOOD_IMGS, 1500);
+      sfx.correct(); flash(fxGood, GOOD_IMGS, 400);
 
       consumeRound();
       setTimeout(function(){ next(); }, 180);
@@ -667,7 +671,7 @@
     if (who === 'p2'){ p2.no++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
     elFeedback.textContent = '✗ Wrong';
     elFeedback.className = 'feedback no';
-    sfx.wrong(); flash(fxBad, BAD_IMGS, 1500);
+    sfx.wrong(); flash(fxBad, BAD_IMGS, 450);
 
     consumeRound();
     setTimeout(function(){ next(); }, 200);
