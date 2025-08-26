@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>  
 <html lang="en">
 <head>
@@ -28,12 +27,11 @@
   .card{background:var(--panel);border:1px solid #262b4a;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
   .problem{position:relative;display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
  .formula {
-  font-size:64px;/* keep large font */font-weight:800;letter-spacing:1px;margin-top:40px;/* push down */ margin-left:40px;/* move left */}
-
+  font-size:64px;font-weight:800;letter-spacing:1px;margin-top:40px;margin-left:40px;}
 
   .timer-mini{position:absolute;top:12px;left:12px;width:88px;height:88px;display:grid;place-items:center;background:#0e1330;border:1px solid #2b3155;border-radius:12px;font-weight:800;letter-spacing:.5px;font-size:20px;box-shadow:0 6px 20px rgba(0,0,0,.35);}
 
-.answer-rows {display:flex;flex-direction:column;justify-content:flex-end; height:100%;}
+  .answer-rows {display:flex;flex-direction:column;justify-content:flex-end; height:100%;}
 
   .row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
   .row input{padding:12px 14px;border-radius:12px;border:1px solid #2c335a;outline:none;background:#0e1330;color:#fff;font-size:clamp(18px,2.2vw,22px);text-align:center;letter-spacing:.5px}
@@ -121,11 +119,9 @@
         </select>
       </div>
 
-      <!-- Audio controls -->
       <div class="group">
         <label>Music</label>
         <div class="range-row">
-          <!-- Default ON -->
           <select id="musicOn"><option value="1" selected>On</option><option value="0">Off</option></select>
           <span class="chip">Vol</span>
         </div>
@@ -149,13 +145,11 @@
     <section class="grid" style="margin-top:16px">
       <div class="card">
         <div class="problem" id="problem">
-          <!-- INLINE TIMER (upper-left of the problem area) -->
           <div class="timer-mini" id="timerMini" aria-live="polite">Timer: off</div>
 
           <div class="turn" id="turnBanner">—</div>
           <div id="formula" class="formula">—</div>
 
-          <!-- single player -->
           <div id="singleRows" class="answer-rows" style="display:grid">
             <div class="row">
               <img id="soloAvatar" class="avatar hidden" alt="">
@@ -164,7 +158,6 @@
             </div>
           </div>
 
-          <!-- multiplayer (only active row shown) -->
           <div id="multiRows" class="answer-rows" style="display:none">
             <div class="row" id="rowP1">
               <img id="avatarP1" class="avatar" src="players/p1.png" alt="P1" onerror="this.style.display='none'">
@@ -181,7 +174,6 @@
           <div id="feedback" class="feedback">&nbsp;</div>
         </div>
 
-        <!-- per-player stats -->
         <div id="versus" class="stats" style="display:none">
           <div class="stat"><label id="lblP1">Aliah ✓ / ✗</label><b id="p1Score">0 / 0</b></div>
           <div class="stat"><label id="lblP2">Aliana ✓ / ✗</label><b id="p2Score">0 / 0</b></div>
@@ -191,18 +183,15 @@
         <footer>Shortcuts: Start turn (Space/Enter) • Submit (Enter) • Esc clear • S skip</footer>
       </div>
 
-      <!-- Right card now only shows the question index -->
       <div class="card">
         <div class="stat"><label>Question</label><b id="qIndex">0</b></div>
       </div>
     </section>
   </div>
 
-  <!-- result overlays -->
   <div id="fxGood" class="fx-overlay"><img id="fxGoodImg" alt="Correct"></div>
   <div id="fxBad"  class="fx-overlay"><img id="fxBadImg"  alt="Incorrect"></div>
 
-  <!-- Turn overlay -->
   <div id="turnOverlay" class="turn-overlay">
     <div class="turn-card">
       <img id="turnAvatar" class="turn-avatar" alt="">
@@ -212,7 +201,6 @@
     </div>
   </div>
 
-  <!-- Final Result overlay -->
   <div id="finalOverlay" class="final-overlay" aria-hidden="true">
     <div id="finalCard" class="final-card">
       <h2>Session complete</h2>
@@ -221,12 +209,10 @@
     </div>
   </div>
 
-  <!-- Audio elements -->
   <audio id="bgm" src="" loop preload="auto"></audio>
   <audio id="sndCorrect" src="sounds/correct.mp3" preload="auto"></audio>
   <audio id="sndWrong"   src="sounds/wrong.mp3"   preload="auto"></audio>
   <audio id="sndFinish"  src="sounds/finish.mp3"  preload="auto"></audio>
-  <!-- NEW: UI action sounds -->
   <audio id="sndStart"   src="sounds/start.mp3"   preload="auto"></audio>
   <audio id="sndSingle"  src="sounds/single.mp3"  preload="auto"></audio>
   <audio id="sndHead"    src="sounds/head2head.mp3" preload="auto"></audio>
@@ -246,6 +232,64 @@
     "Space Knights.mp3",
     "Water Theme - G Major - Jordan Ottesen.mp3"
   ];
+
+  // ===== NEW: image folder-based pools (no hardcoded filenames) =====
+  const CORRECT_DIR   = 'images/correcto/';   // put any "correct" images here
+  const INCORRECT_DIR = 'images/incorrect/';  // put any "incorrect" images here
+
+  // 1x1 transparent PNG fallback
+  const BLANK_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
+
+  // ===== DOM =====
+  var $=function(s){return document.querySelector(s);}
+  var elMode=$('#mode'), elDiff=$('#difficulty'), elDiffVal=$('#diffVal');
+  var elTimerSec=$('#timerSec'), elTimerVal=$('#timerVal');
+  var elRounds=$('#rounds'), elPlayers=$('#players');
+
+  var elMusicOn=$('#musicOn'), elMusicVol=$('#musicVol'), BGM=$('#bgm');
+  var elSoundOn=$('#soundOn'), elVol=$('#volume'),
+      SND_OK=$('#sndCorrect'), SND_NO=$('#sndWrong'), SND_FINISH=$('#sndFinish');
+  var SND_START=$('#sndStart'), SND_SINGLE=$('#sndSingle'), SND_HEAD=$('#sndHead');
+
+  var elStart=$('#btnStart'), elReset=$('#btnReset');
+  var elSingle=$('#singleRows'), elMulti=$('#multiRows');
+  var elAns1=$('#answer1'), elBtn1=$('#btnSubmit1');
+  var elP1=$('#answerP1'), elP2=$('#answerP2');
+  var elBtnP1=$('#btnSubmitP1'), elBtnP2=$('#btnSubmitP2');
+  var rowP1=$('#rowP1'), rowP2=$('#rowP2');
+
+  var elFormula=$('#formula'), elFeedback=$('#feedback');
+  var elQIndex=$('#qIndex'), elTimer=$('#timerMini');
+  var elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
+  var elLblP1=$('#lblP1'), elLblP2=$('#lblP2'), elTurn=$('#turnBanner');
+
+  var fxGood=$('#fxGood'), fxBad=$('#fxBad'), fxGoodImg=$('#fxGoodImg'), fxBadImg=$('#fxBadImg');
+
+  // Turn overlay
+  var overlay=$('#turnOverlay'), overlayText=$('#turnText'), overlayAvatar=$('#turnAvatar'), btnBeginTurn=$('#btnBeginTurn');
+
+  // Final overlay
+  var finalOv = $('#finalOverlay'), finalCard = $('#finalCard');
+  var finalScore = $('#finalScore'), finalClose = $('#finalClose');
+  function showFinal(text){ finalScore.textContent=text; finalOv.classList.add('show'); finalOv.setAttribute('aria-hidden','false'); }
+  function hideFinal(){ finalOv.classList.remove('show'); finalOv.setAttribute('aria-hidden','true'); }
+  finalClose.addEventListener('click', hideFinal);
+  finalOv.addEventListener('click', function(e){ if(e.target===finalOv) hideFinal(); });
+  window.addEventListener('keydown', function(e){ if(e.key==='Escape') hideFinal(); });
+
+  // ===== State =====
+  var GOOD_IMGS=[], BAD_IMGS=[];
+  var P1_IMG="players/p1.png";
+  var P2_IMG="players/p2.png";
+
+  var running=false, current=null, qCount=0;
+  var good=0,bad=0;
+  var p1={ok:0,no:0,played:0}, p2={ok:0,no:0,played:0};
+  var tick=null, remaining=0;
+  var turn='p1';
+  var awaitingTurnStart=false;
+
+  // ===== Music =====
   function setRandomBgm(){
     if (!MUSIC_TRACKS.length) return;
     const pick = MUSIC_TRACKS[Math.floor(Math.random()*MUSIC_TRACKS.length)];
@@ -265,77 +309,6 @@
       document.addEventListener('keydown',   resume, { once:true });
     });
   }
-
-  // ===== DOM =====
-  var $=function(s){return document.querySelector(s);}
-  var elMode=$('#mode'), elDiff=$('#difficulty'), elDiffVal=$('#diffVal');
-  var elTimerSec=$('#timerSec'), elTimerVal=$('#timerVal');
-  var elRounds=$('#rounds'), elPlayers=$('#players');
-
-  var elMusicOn=$('#musicOn'), elMusicVol=$('#musicVol'), BGM=$('#bgm');
-  var elSoundOn=$('#soundOn'), elVol=$('#volume'),
-      SND_OK=$('#sndCorrect'), SND_NO=$('#sndWrong'), SND_FINISH=$('#sndFinish');
-  // NEW: UI action sounds
-  var SND_START=$('#sndStart'), SND_SINGLE=$('#sndSingle'), SND_HEAD=$('#sndHead');
-
-  var elStart=$('#btnStart'), elReset=$('#btnReset');
-  var elSingle=$('#singleRows'), elMulti=$('#multiRows');
-  var elAns1=$('#answer1'), elBtn1=$('#btnSubmit1');
-  var elP1=$('#answerP1'), elP2=$('#answerP2');
-  var elBtnP1=$('#btnSubmitP1'), elBtnP2=$('#btnSubmitP2');
-  var rowP1=$('#rowP1'), rowP2=$('#rowP2');
-
-  var elFormula=$('#formula'), elFeedback=$('#feedback');
-  var elQIndex=$('#qIndex'), elTimer=$('#timerMini'); // <-- timer now inside the problem area
-  var elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
-  var elLblP1=$('#lblP1'), elLblP2=$('#lblP2'), elTurn=$('#turnBanner');
-
-  var fxGood=$('#fxGood'), fxBad=$('#fxBad'), fxGoodImg=$('#fxGoodImg'), fxBadImg=$('#fxBadImg');
-
-  // Turn overlay
-  var overlay=$('#turnOverlay'), overlayText=$('#turnText'), overlayAvatar=$('#turnAvatar'), btnBeginTurn=$('#btnBeginTurn');
-
-  // Final overlay
-  var finalOv = $('#finalOverlay'), finalCard = $('#finalCard');
-  var finalScore = $('#finalScore'), finalClose = $('#finalClose');
-  function showFinal(text){ finalScore.textContent=text; finalOv.classList.add('show'); finalOv.setAttribute('aria-hidden','false'); }
-  function hideFinal(){ finalOv.classList.remove('show'); finalOv.setAttribute('aria-hidden','true'); }
-  finalClose.addEventListener('click', hideFinal);
-  finalOv.addEventListener('click', function(e){ if(e.target===finalOv) hideFinal(); });
-  window.addEventListener('keydown', function(e){ if(e.key==='Escape') hideFinal(); });
-
-  // ===== State =====
-  var GOOD_CANDIDATES=["images/Macky-Correct-2.jpg","images/IMG-20250628-WA0014[1].png","images/correct.png","images/correct1.webp"];
-  var BAD_CANDIDATES =["images/Macky-Incorrect-1.png","images/wrong.png","images/wrong1.webp"];
-  var GOOD_IMGS=[], BAD_IMGS=[];
-  var P1_IMG="players/p1.png";
-  var P2_IMG="players/p2.png";
-
-  var running=false, current=null, qCount=0;
-  var good=0,bad=0;
-  var p1={ok:0,no:0,played:0}, p2={ok:0,no:0,played:0};
-  var tick=null, remaining=0;
-  var turn='p1';
-  var awaitingTurnStart=false;
-
-  // ===== preload & filter available images =====
-  // 1x1 transparent PNG fallback
-  var BLANK_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
-
-  function filterExisting(candidates, cb){
-    var out=[], i=0;
-    function tryNext(){
-      if(i>=candidates.length){ cb(out); return; }
-      var src=candidates[i++], img=new Image();
-      img.onload=function(){ out.push(src); tryNext(); };
-      img.onerror=tryNext; img.src=src;
-    }
-    tryNext();
-  }
-  filterExisting(GOOD_CANDIDATES,function(arr){ GOOD_IMGS=arr.length?arr:[BLANK_IMG]; fxGoodImg.src=GOOD_IMGS[0]; });
-  filterExisting(BAD_CANDIDATES, function(arr){ BAD_IMGS =arr.length?arr:[BLANK_IMG];  fxBadImg.src =BAD_IMGS[0]; });
-
-  // ===== Music =====
   function updateMusic(){
     BGM.volume=+elMusicVol.value;
     if(elMusicOn.value==="1"){
@@ -375,17 +348,68 @@
     timeout:function(){ [523,392,330].forEach(function(f,i){tone(f,0.12,'sine',i*0.09,0.22);}); }
   };
 
+  // ===== NEW: folder scanning helpers =====
+  async function listImagesFrom(dir){
+    const exts = ['.png','.jpg','.jpeg','.webp','.gif','.bmp','.avif'];
+    const isImg = (u) => exts.some(e => u.toLowerCase().endsWith(e));
+
+    // Try manifest.json first: ["a.png","b.jpg"] or {files:[...]}
+    try {
+      const r = await fetch(dir + 'manifest.json', {cache:'no-store'});
+      if (r.ok) {
+        const j = await r.json();
+        const files = Array.isArray(j) ? j : (Array.isArray(j.files) ? j.files : []);
+        return files
+          .map(x => x.startsWith('http')||x.startsWith('/') ? x : dir + x)
+          .filter(isImg);
+      }
+    } catch(_) {}
+
+    // Fallback: directory index (only works if server exposes it)
+    try {
+      const r = await fetch(dir, {cache:'no-store'});
+      if (r.ok) {
+        const html = await r.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const links = Array.from(doc.querySelectorAll('a[href]'))
+          .map(a => a.getAttribute('href'))
+          .filter(Boolean);
+        const files = links
+          .map(h => h.startsWith('http')||h.startsWith('/') ? h : dir + h.replace(/^\.?\//,''))
+          .filter(isImg);
+        return files;
+      }
+    } catch(_) {}
+
+    return [];
+  }
+
+  async function loadImagePools(){
+    try{
+      const [goods, bads] = await Promise.all([
+        listImagesFrom(CORRECT_DIR),
+        listImagesFrom(INCORRECT_DIR)
+      ]);
+      GOOD_IMGS = goods.length ? goods : [BLANK_IMG];
+      BAD_IMGS  = bads.length  ? bads  : [BLANK_IMG];
+
+      // set defaults so early flashes show something
+      fxGoodImg.src = GOOD_IMGS[0];
+      fxBadImg.src  = BAD_IMGS[0];
+    }catch(_){
+      GOOD_IMGS = [BLANK_IMG];
+      BAD_IMGS  = [BLANK_IMG];
+      fxGoodImg.src = BLANK_IMG;
+      fxBadImg.src  = BLANK_IMG;
+    }
+  }
+
   // ===== Helpers =====
   function flash(el, list, hold){
     hold = hold || 600;
     try{
-      if(!list || !list.length){
-        el.classList.add('show');
-        setTimeout(function(){ el.classList.remove('show'); }, hold);
-        return;
-      }
       var imgEl = (el === fxGood ? fxGoodImg : fxBadImg);
-      var pick  = list[Math.floor(Math.random() * list.length)] || BLANK_IMG;
+      var pick  = (list && list.length) ? list[Math.floor(Math.random() * list.length)] : BLANK_IMG;
       imgEl.src = pick;
       el.classList.add('show');
       setTimeout(function(){ el.classList.remove('show'); }, hold);
@@ -440,7 +464,6 @@
     if(two) setRowVis();
   }
 
-  // Play audio when player mode changes
   elPlayers.addEventListener('change', function(){
     if (elPlayers.value === "1") playAudio(SND_SINGLE);
     else if (elPlayers.value === "2") playAudio(SND_HEAD);
@@ -458,7 +481,6 @@
   }
   function hideTurnOverlay(){ overlay.classList.remove('show'); awaitingTurnStart=false; }
 
-  // Handoff: re-roll music
   btnBeginTurn.addEventListener('click', function(){
     hideTurnOverlay();
     setRandomBgm();
@@ -481,10 +503,8 @@
     running=true; qCount=0; good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     elStart.textContent='Running…'; elStart.disabled=true;
 
-    // start button sound
     playAudio(SND_START);
 
-    // Match start: re-roll music
     setRandomBgm();
     attemptAutoplay();
 
@@ -499,14 +519,13 @@
     uiMode();
   }
   function reset(){
-    stopTimer(); running=false; current=null; qCount=good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
+    stopTimer(); running=false; current=null; qCount=0; good=0; bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     elStart.textContent='Start ▶'; elStart.disabled=false;
     [elAns1,elP1,elP2].forEach(function(i){i.value=''; i.disabled=true;});
     elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
     elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
     elQIndex.textContent='0';
     overlay.classList.remove('show'); awaitingTurnStart=false;
-    // NOTE: do not pause BGM here
   }
 
   function next(initial){
@@ -529,7 +548,7 @@
     qCount++;
     var mode=pickOp(elMode.value), L=+elDiff.value;
     current=ops[mode].gen(L);
-   elFormula.textContent = current.text;
+    elFormula.textContent = current.text;
     elQIndex.textContent=qCount;
     [elAns1,elP1,elP2].forEach(function(i){i.value='';});
     elFeedback.textContent=' '; elFeedback.className='feedback';
@@ -651,18 +670,17 @@
     if(e.key && e.key.toLowerCase()==='s') skip();
   });
 
-  // numeric-only
   [elAns1,elP1,elP2].forEach(function(inp){
     inp.addEventListener('input',function(){ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); });
   });
 
-  // ===== Init (app load): pick & start music immediately =====
+  // ===== Init =====
   setRandomBgm();
   attemptAutoplay();
 
-  // init visuals
-  fxGoodImg.src = "images/Macky-Correct-2.jpg";
-  fxBadImg.src  = "images/Macky-Incorrect-1.png";
+  // load image pools from folders (supports manifest.json or server index)
+  loadImagePools();
+
   stopTimer(); running=false; current=null; qCount=0;
   elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
   elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
