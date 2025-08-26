@@ -421,7 +421,7 @@
   }
 
   function flash(el, list, hold){
-    hold = hold || 1000;
+    hold = hold || 600;
     try{
       var imgEl = (el === fxGood ? fxGoodImg : fxBadImg);
       var pick  = (list && list.length) ? list[Math.floor(Math.random() * list.length)] : BLANK_IMG;
@@ -655,7 +655,7 @@
       if (who === 'p2'){ p2.ok++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
       elFeedback.textContent = (who==='solo' ? 'Correct!' : (activeName() + ' scores!'));
       elFeedback.className = 'feedback ok';
-      sfx.correct(); flash(fxGood, GOOD_IMGS, 400);
+      sfx.correct(); flash(fxGood, GOOD_IMGS, 1500);
 
       consumeRound();
       setTimeout(function(){ next(); }, 180);
@@ -667,7 +667,7 @@
     if (who === 'p2'){ p2.no++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
     elFeedback.textContent = '✗ Wrong';
     elFeedback.className = 'feedback no';
-    sfx.wrong(); flash(fxBad, BAD_IMGS, 450);
+    sfx.wrong(); flash(fxBad, BAD_IMGS, 1500);
 
     consumeRound();
     setTimeout(function(){ next(); }, 200);
