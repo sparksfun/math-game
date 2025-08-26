@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>  
 <html lang="en">
 <head>
@@ -305,7 +304,7 @@
   window.addEventListener('keydown', function(e){ if(e.key==='Escape') hideFinal(); });
 
   // ===== State =====
-  var GOOD_CANDIDATES=["images/giftest.gif","images/Macky-Correct-2.jpg","images/IMG-20250628-WA0014[1].png","images/correct.png","images/correct1.webp","images/correct.webp"];
+  var GOOD_CANDIDATES=["images/Macky-Correct-2.jpg","images/correct.png","images/correct1.webp"];
   var BAD_CANDIDATES =["images/Macky-Incorrect-1.png","images/wrong.png","images/wrong1.webp"];
   var GOOD_IMGS=[], BAD_IMGS=[];
   var P1_IMG="players/p1.png";
@@ -376,6 +375,18 @@
   };
 
   // ===== Helpers =====
+  // NEW: GIF helpers to auto-extend hold for GIFs (no fetch/async)
+  function isGif(src){ return /\.gif(?:$|\?)/i.test(src); }
+  function gifHoldFromName(src){
+    // query override: ?dur=2800  (ms)
+    let m = src.match(/[?&]dur=(\d+)/i);
+    if (m) return +m[1];
+    // filename override: name@2.5s.gif  or name@900ms.gif
+    m = src.match(/@(\d+(?:\.\d+)?)(ms|s)\.gif(?:$|\?)/i);
+    if (m) return m[2].toLowerCase()==='s' ? Math.round(+m[1]*1000) : Math.round(+m[1]);
+    return null;
+  }
+
   function flash(el, list, hold){
     hold = hold || 600;
     try{
@@ -388,7 +399,14 @@
       var pick  = list[Math.floor(Math.random() * list.length)] || BLANK_IMG;
       imgEl.src = pick;
       el.classList.add('show');
-      setTimeout(function(){ el.classList.remove('show'); }, hold);
+
+      // auto-extend for GIFs; allow filename/query override
+      var ms = hold;
+      if (isGif(pick)){
+        var override = gifHoldFromName(pick);
+        ms = Math.max(hold, override || 2500); // default min 2.5s for GIFs
+      }
+      setTimeout(function(){ el.classList.remove('show'); }, ms);
     }catch(e){
       el.classList.add('show');
       setTimeout(function(){ el.classList.remove('show'); }, hold);
