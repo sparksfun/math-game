@@ -464,7 +464,7 @@
     }catch(e){
       el.classList.add('show');
       // Provisional hide: make stills linger, leave GIFs as-is
-var baseHold = (!isGif(pick) && (el === fxGood || el === fxBad)) ? Math.max(hold, 2000) : hold;
+var baseHold = (!isGif(pick) && (el === fxGood || el === fxBad)) ? Math.max(hold, 3000) : hold;
 //              ^ only still images on yay/nay overlays get at least 1500ms
 scheduleHide(el, baseHold);
 
