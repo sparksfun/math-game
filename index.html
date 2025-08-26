@@ -421,7 +421,7 @@
   }
 
   function flash(el, list, hold){
-    hold = hold || 600;
+    hold = hold || 1000;
     try{
       var imgEl = (el === fxGood ? fxGoodImg : fxBadImg);
       var pick  = (list && list.length) ? list[Math.floor(Math.random() * list.length)] : BLANK_IMG;
