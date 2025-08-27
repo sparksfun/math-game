@@ -185,6 +185,7 @@
 
       <div class="card">
         <div class="stat"><label>Question</label><b id="qIndex">0</b></div>
+        <div class="stat"><label>Streak</label><b id="streak">0</b></div>
       </div>
     </section>
   </div>
@@ -267,6 +268,8 @@
   const elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
   const elLblP1=$('#lblP1'), elLblP2=$('#lblP2'), elTurn=$('#turnBanner');
 
+  const elStreak=$('#streak');
+
   const fxGood=$('#fxGood'), fxBad=$('#fxBad'),
         fxGoodImg=$('#fxGoodImg'), fxBadImg=$('#fxBadImg'),
         fxGoodVid=$('#fxGoodVid'), fxBadVid=$('#fxBadVid');
@@ -296,6 +299,10 @@
   let good=0,bad=0;
   let p1={ok:0,no:0,played:0}, p2={ok:0,no:0,played:0};
   let tick=null, remaining=0, turn='p1', awaitingTurnStart=false;
+
+  // NEW: overlay wait guard + streaks
+  let awaitingOverlay=false;
+  let streakSolo=0, streakP1=0, streakP2=0;
 
   const P1_IMG="players/p1.png";
   const P2_IMG="players/p2.png";
@@ -394,76 +401,103 @@
     return idx;
   }
 
-  // schedule hide
-  function scheduleHide(el, ms){
+  // schedule hide (with completion callback)
+  function scheduleHide(el, ms, onDone){
     if (el._hideTimer) clearTimeout(el._hideTimer);
-    el._hideTimer = setTimeout(()=>{ el.classList.remove('show'); el._hideTimer=null; }, ms);
+    el._hideTimer = setTimeout(()=>{
+      el.classList.remove('show');
+      el._hideTimer=null;
+      if (typeof onDone === 'function') onDone();
+    }, ms);
   }
 
-  // Unified flash: images/gifs/mp4; no prefilter; retry on error
-  function flash(el, pool, hold){
+  // Unified flash -> Promise resolves when overlay fully finishes
+  function flashAsync(el, pool, hold){
     hold = hold || 600;
-    const isGood = (el === fxGood);
-    const imgEl  = isGood ? fxGoodImg : fxBadImg;
-    const vidEl  = isGood ? fxGoodVid : fxBadVid;
+    return new Promise(resolve=>{
+      const isGood = (el === fxGood);
+      const imgEl  = isGood ? fxGoodImg : fxBadImg;
+      const vidEl  = isGood ? fxGoodVid : fxBadVid;
 
-    // stop prior video
-    try{ vidEl.pause(); }catch(e){}
-    vidEl.removeAttribute('src');
-    vidEl.load?.();
+      // stop prior video
+      try{ vidEl.pause(); }catch(e){}
+      vidEl.removeAttribute('src');
+      vidEl.load?.();
 
-    const lastKey = isGood ? '_lastGood' : '_lastBad';
-    const poolArr = (pool && pool.length) ? pool : [BLANK_IMG];
-    const idx = pickIndexAvoidRepeat(poolArr.length, el[lastKey] ?? -1);
-    el[lastKey] = idx;
-    let pick = poolArr[idx];
+      const lastKey = isGood ? '_lastGood' : '_lastBad';
+      const poolArr = (pool && pool.length) ? pool : [BLANK_IMG];
+      const idx = pickIndexAvoidRepeat(poolArr.length, el[lastKey] ?? -1);
+      el[lastKey] = idx;
+      let pick = poolArr[idx];
 
-    el.classList.add('show');
-    imgEl.onerror = null;
+      el.classList.add('show');
+      imgEl.onerror = null;
 
-    // VIDEO
-    if (isVideo(pick)){
-      imgEl.style.display='none';
-      vidEl.style.display='block';
-      const onEnded = ()=>{ el.classList.remove('show'); cleanup(); };
-      const cleanup = ()=>{ vidEl.removeEventListener('ended', onEnded); };
-      vidEl.addEventListener('ended', onEnded);
-      vidEl.onloadedmetadata = ()=>{ scheduleHide(el, Math.max(hold, ((vidEl.duration||0)*1000|0)+150)); };
-      vidEl.src = pick;
-      vidEl.play().catch(()=>{ scheduleHide(el, Math.max(hold, 4000)); });
-      return;
-    }
+      // VIDEO
+      if (isVideo(pick)){
+        imgEl.style.display='none';
+        vidEl.style.display='block';
 
-    // IMAGES / GIFs
-    vidEl.style.display='none';
-    imgEl.style.display='block';
-
-    imgEl.onerror = ()=>{ // retry with a different pick (up to 3 attempts)
-      let attempts = (el._errAttempts||0)+1;
-      el._errAttempts = attempts;
-      if (attempts<3){
-        el[lastKey] = -1; // allow any
-        flash(el, pool, hold);
-      }else{
-        imgEl.src = BLANK_IMG;
-        scheduleHide(el, STILL_MIN_MS);
-        el._errAttempts=0;
+        const onEnded = ()=>{
+          cleanup();
+          el.classList.remove('show');
+          resolve();
+        };
+        const cleanup = ()=>{
+          vidEl.removeEventListener('ended', onEnded);
+          if (vidEl._fallbackTimer){ clearTimeout(vidEl._fallbackTimer); vidEl._fallbackTimer=null; }
+        };
+        vidEl.addEventListener('ended', onEnded);
+        vidEl.onloadedmetadata = ()=>{
+          const ms = Math.max(hold, ((vidEl.duration||0)*1000|0)+150);
+          vidEl._fallbackTimer = setTimeout(()=>{ onEnded(); }, ms+50); // safety
+        };
+        vidEl.src = pick;
+        vidEl.play().catch(()=>{
+          scheduleHide(el, Math.max(hold, 4000), resolve);
+        });
+        return;
       }
-    };
-    imgEl.onload = ()=>{ el._errAttempts=0; };
-    imgEl.src = pick;
 
-    if (!isGif(pick)) { scheduleHide(el, Math.max(hold, STILL_MIN_MS)); return; }
+      // IMAGES / GIFs
+      vidEl.style.display='none';
+      imgEl.style.display='block';
 
-    scheduleHide(el, hold);
-    const override = gifHoldFromName(pick);
-    if (override != null){ scheduleHide(el, Math.max(hold, override)); return; }
-    computeGifDurationMs(pick).then(ms=>{
-      scheduleHide(el, Math.max(hold, (ms||2500)+150));
+      imgEl.onerror = ()=>{
+        let attempts = (el._errAttempts||0)+1;
+        el._errAttempts = attempts;
+        if (attempts<3){
+          el[lastKey] = -1;
+          // try again with new pick
+          resolve(); // finish this attempt quickly; caller will continue to next question only after we re-trigger flashAsync externally if needed
+          el.classList.remove('show');
+        }else{
+          imgEl.src = BLANK_IMG;
+          scheduleHide(el, STILL_MIN_MS, ()=>{ el._errAttempts=0; resolve(); });
+        }
+      };
+      imgEl.onload = ()=>{ el._errAttempts=0; };
+      imgEl.src = pick;
+
+      if (!isGif(pick)) {
+        scheduleHide(el, Math.max(hold, STILL_MIN_MS), resolve);
+        return;
+      }
+
+      const override = gifHoldFromName(pick);
+      if (override != null){
+        scheduleHide(el, Math.max(hold, override), resolve);
+        return;
+      }
+      computeGifDurationMs(pick).then(ms=>{
+        scheduleHide(el, Math.max(hold, (ms||2500)+150), resolve);
+      }).catch(()=>{
+        scheduleHide(el, Math.max(hold, 2500), resolve);
+      });
     });
   }
 
-  // ===== Math game (unchanged) =====
+  // ===== Math game =====
   function clamp(n,a,b){return Math.min(Math.max(n,a),b);}
   function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
   function pickOp(m){return m!=='mix'?m:['add','sub','mul','div'][rnd(0,3)];}
@@ -487,6 +521,10 @@
   };
 
   function activeName(){ return turn==='p1' ? NAME_P1 : NAME_P2; }
+  function currentStreak(){ return elPlayers.value==='2' ? (turn==='p1'?streakP1:streakP2) : streakSolo; }
+  function setCurrentStreak(v){ if(elPlayers.value==='2'){ if(turn==='p1') streakP1=v; else streakP2=v; } else { streakSolo=v; } }
+  function renderStreak(){ elStreak.textContent = String(currentStreak()); }
+
   function updateTurnBanner(){ elTurn.textContent = elPlayers.value==='2' ? ('Turn: '+activeName()) : '—'; }
   function setRowVis(){
     const p1Active = (turn==='p1');
@@ -505,6 +543,7 @@
     $('#answerP1').placeholder = NAME_P1;
     $('#answerP2').placeholder = NAME_P2;
     updateTurnBanner();
+    renderStreak();
     if(two) setRowVis();
   }
 
@@ -522,6 +561,7 @@
     overlayAvatar.onload  = ()=>{ overlayAvatar.style.display='block'; };
     overlay.classList.add('show');
     awaitingTurnStart = true;
+    renderStreak();
   }
   function hideTurnOverlay(){ overlay.classList.remove('show'); awaitingTurnStart=false; }
 
@@ -544,6 +584,7 @@
     if(running) return;
     if(AC && AC.state==='suspended'){ AC.resume(); }
     running=true; qCount=0; good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
+    streakSolo=streakP1=streakP2=0; renderStreak();
     elStart.textContent='Running…'; elStart.disabled=true;
 
     playAudio(SND_START);
@@ -561,6 +602,7 @@
   }
   function reset(){
     stopTimer(); running=false; current=null; qCount=good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
+    streakSolo=streakP1=streakP2=0; renderStreak();
     elStart.textContent='Start ▶'; elStart.disabled=false;
     [elAns1,elP1,elP2].forEach(i=>{i.value=''; i.disabled=true;});
     elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
@@ -593,6 +635,7 @@
     elQIndex.textContent=qCount;
     [elAns1,elP1,elP2].forEach(i=>{i.value='';});
     elFeedback.textContent=' '; elFeedback.className='feedback';
+    renderStreak();
     startTimerIfNeeded();
   }
 
@@ -628,11 +671,30 @@
   window.addEventListener('keydown', e=>{ if(e.key==='Escape') hideFinal(); });
 
   function consumeRound(){ if(elPlayers.value==='2'){ (turn==='p1'?p1:p2).played++; } }
+
   function leadText(){ const d=p1.ok-p2.ok; return d===0?'Tied':(d>0?(NAME_P1)+' +'+d:(NAME_P2)+' +'+(-d)); }
 
-  function handleSubmit(val, who){
+  function disableAllInputs(disabled){
+    [elAns1,elP1,elP2].forEach(i=>i.disabled = disabled ? true : i.disabled);
+    if(disabled){ /* nothing else */ }
+  }
+
+  async function afterOverlayThenNext(promise){
+    try{
+      awaitingOverlay=true;
+      disableAllInputs(true);
+      await promise;
+    }finally{
+      awaitingOverlay=false;
+      disableAllInputs(false);
+      next();
+    }
+  }
+
+  async function handleSubmit(val, who){
     if(awaitingTurnStart) return;
     if(!running || !current || val==='') return;
+    if(awaitingOverlay) return;
 
     stopTimer();
 
@@ -641,37 +703,43 @@
 
     if (correct) {
       good++;
+      setCurrentStreak(currentStreak()+1); renderStreak();
+
       if (who === 'p1'){ p1.ok++; elP1Score.textContent = p1.ok + ' / ' + p1.no; elLead.textContent = leadText(); }
       if (who === 'p2'){ p2.ok++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
       elFeedback.textContent = (who==='solo' ? 'Correct!' : (activeName() + ' scores!'));
       elFeedback.className = 'feedback ok';
-      sfx.correct(); flash(fxGood, GOOD_POOL, 400);
+      sfx.correct();
 
       consumeRound();
-      setTimeout(()=>{ next(); }, 180);
+      await afterOverlayThenNext(flashAsync(fxGood, GOOD_POOL, 400));
       return;
     }
 
+    // wrong
     bad++;
+    setCurrentStreak(0); renderStreak();
+
     if (who === 'p1'){ p1.no++; elP1Score.textContent = p1.ok + ' / ' + p1.no; elLead.textContent = leadText(); }
     if (who === 'p2'){ p2.no++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
     elFeedback.textContent = '✗ Wrong';
     elFeedback.className = 'feedback no';
-    sfx.wrong(); flash(fxBad, BAD_POOL, 450);
+    sfx.wrong();
 
     consumeRound();
-    setTimeout(()=>{ next(); }, 200);
+    await afterOverlayThenNext(flashAsync(fxBad, BAD_POOL, 450));
   }
 
-  function skip(){
+  async function skip(){
     if(awaitingTurnStart || !running) return;
+    if(awaitingOverlay) return;
     stopTimer();
     bad++;
+    setCurrentStreak(0); renderStreak();
     elFeedback.textContent='⏭ Skipped';
     elFeedback.className='feedback no';
-    flash(fxBad, BAD_POOL, 300);
     consumeRound();
-    next();
+    await afterOverlayThenNext(flashAsync(fxBad, BAD_POOL, 300));
   }
 
   // Timer
@@ -682,10 +750,14 @@
     tick=setInterval(()=>{
       remaining--;
       if(remaining>0){ sfx.tick(); renderTimer(); return; }
+      // timeout
+      stopTimer();
       bad++;
+      setCurrentStreak(0); renderStreak();
       elFeedback.textContent='Time out — next!'; elFeedback.className='feedback no';
-      sfx.timeout(); flash(fxBad,BAD_POOL,700);
-      consumeRound(); next();
+      sfx.timeout();
+      consumeRound();
+      afterOverlayThenNext(flashAsync(fxBad,BAD_POOL,700));
     },1000);
   }
   function stopTimer(){ if(tick){ clearInterval(tick); tick=null; } }
@@ -724,7 +796,7 @@
   stopTimer(); running=false; current=null; qCount=0;
   elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
   elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
-  elQIndex.textContent='0';
+  elQIndex.textContent='0'; renderStreak();
   uiMode();
 })();
 </script>
