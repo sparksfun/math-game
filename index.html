@@ -136,6 +136,15 @@
         <input id="volume" type="range" min="0" max="1" step="0.01" value="0.5" />
       </div>
 
+      <!-- NEW: MP4 clip volume -->
+      <div class="group">
+        <label>Clip (MP4) Vol</label>
+        <div class="range-row">
+          <input id="clipVol" type="range" min="0" max="1" step="0.01" value="0.9" />
+          <span id="clipVolVal" class="chip">0.90</span>
+        </div>
+      </div>
+
       <div class="group">
         <label>&nbsp;</label>
         <span class="chip">Start turn: Space/Enter • Submit: Enter • Skip: S</span>
@@ -255,6 +264,8 @@
         SND_OK=$('#sndCorrect'), SND_NO=$('#sndWrong'), SND_FINISH=$('#sndFinish'),
         SND_START=$('#sndStart'), SND_SINGLE=$('#sndSingle'), SND_HEAD=$('#sndHead');
 
+  const elClipVol=$('#clipVol'), elClipVolVal=$('#clipVolVal');
+
   const elStart=$('#btnStart'), elReset=$('#btnReset');
   const elSingle=$('#singleRows'), elMulti=$('#multiRows');
   const elAns1=$('#answer1'), elBtn1=$('#btnSubmit1');
@@ -357,6 +368,31 @@
     timeout:()=>[523,392,330].forEach((f,i)=>tone(f,0.12,'sine',i*0.09,0.22))
   };
 
+  // ===== Ducking (mute music + fx during MP4) =====
+  const DUCK_MS = 0.08; // seconds for quick ramp
+  let duckDepth = 0;
+  function beginDucking(){
+    duckDepth++;
+    // mute bgm immediately, but remember it follows UI when restored
+    try{ BGM.muted = true; }catch(e){}
+    if(master && AC){
+      const now = AC.currentTime;
+      master.gain.cancelScheduledValues(now);
+      master.gain.setTargetAtTime(0.0001, now, DUCK_MS);
+    }
+  }
+  function endDucking(){
+    duckDepth = Math.max(0, duckDepth-1);
+    if(duckDepth>0) return;
+    // restore to current UI values
+    try{ BGM.muted = false; BGM.volume = +elMusicVol.value; }catch(e){}
+    if(master && AC){
+      const now = AC.currentTime;
+      master.gain.cancelScheduledValues(now);
+      master.gain.setTargetAtTime(+elVol.value || 0, now, DUCK_MS);
+    }
+  }
+
   // ===== Media helpers =====
   const BLANK_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
   const isGif   = src => /\.gif(?:$|\?)/i.test(src);
@@ -429,8 +465,12 @@
         imgEl.style.display='none';
         vidEl.style.display='block';
 
+        // set desired clip volume
+        try{ vidEl.volume = +elClipVol.value; }catch(e){}
+
         const onEnded = ()=>{
           cleanup();
+          endDucking();
           el.classList.remove('show');
           resolve();
         };
@@ -438,6 +478,10 @@
           vidEl.removeEventListener('ended', onEnded);
           if (vidEl._fallbackTimer){ clearTimeout(vidEl._fallbackTimer); vidEl._fallbackTimer=null; }
         };
+
+        // DUCK: mute music + fx while MP4 plays
+        beginDucking();
+
         vidEl.addEventListener('ended', onEnded);
         vidEl.onloadedmetadata = ()=>{
           const ms = Math.max(hold, ((vidEl.duration||0)*1000|0)+150);
@@ -445,7 +489,8 @@
         };
         vidEl.src = pick;
         vidEl.play().catch(()=>{
-          scheduleHide(el, Math.max(hold, 4000), resolve);
+          // if playback fails, unduck after fallback window
+          scheduleHide(el, Math.max(hold, 4000), ()=>{ endDucking(); resolve(); });
         });
         return;
       }
@@ -786,6 +831,9 @@
   [elAns1,elP1,elP2].forEach(inp=>{
     inp.addEventListener('input',()=>{ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); });
   });
+
+  // NEW: clip volume UI value
+  elClipVol.addEventListener('input', ()=>{ elClipVolVal.textContent = (+elClipVol.value).toFixed(2); });
 
   // Init
   setRandomBgm(); attemptAutoplay();
