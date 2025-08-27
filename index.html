@@ -488,14 +488,6 @@
           vidEl._fallbackTimer = setTimeout(()=>{ onEnded(); }, ms+50);
         };
         vidEl.src = pick;
-        ensureVideoBus();
-        if (!vidEl._ctxNode && AC){
-        vidEl._ctxNode = AC.createMediaElementSource(vidEl);
-        vidEl._ctxNode.connect(vidGain);
-        }
-        vidEl.volume = 0;
-        vidGain.gain.setTargetAtTime(2.0, AC.currentTime, 0.01); // 2× boost
-
         vidEl.play().catch(()=>{
           // if playback fails, unduck after fallback window
           scheduleHide(el, Math.max(hold, 4000), ()=>{ endDucking(); resolve(); });
