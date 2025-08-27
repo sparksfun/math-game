@@ -27,12 +27,11 @@
   .card{background:var(--panel);border:1px solid #262b4a;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
   .problem{position:relative;display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
  .formula {
-  font-size:64px;/* keep large font */font-weight:800;letter-spacing:1px;margin-top:40px;/* push down */ margin-left:40px;/* move left */}
-
+  font-size:64px;font-weight:800;letter-spacing:1px;margin-top:40px;margin-left:40px;}
 
   .timer-mini{position:absolute;top:12px;left:12px;width:88px;height:88px;display:grid;place-items:center;background:#0e1330;border:1px solid #2b3155;border-radius:12px;font-weight:800;letter-spacing:.5px;font-size:20px;box-shadow:0 6px 20px rgba(0,0,0,.35);}
 
-.answer-rows {display:flex;flex-direction:column;justify-content:flex-end; height:100%;}
+.answer-rows {display:flex;flex-direction:column;justify-content:flex-end;height:100%;}
 
   .row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
   .row input{padding:12px 14px;border-radius:12px;border:1px solid #2c335a;outline:none;background:#0e1330;color:#fff;font-size:clamp(18px,2.2vw,22px);text-align:center;letter-spacing:.5px}
@@ -121,11 +120,9 @@
         </select>
       </div>
 
-      <!-- Audio controls -->
       <div class="group">
         <label>Music</label>
         <div class="range-row">
-          <!-- Default ON -->
           <select id="musicOn"><option value="1" selected>On</option><option value="0">Off</option></select>
           <span class="chip">Vol</span>
         </div>
@@ -149,13 +146,10 @@
     <section class="grid" style="margin-top:16px">
       <div class="card">
         <div class="problem" id="problem">
-          <!-- INLINE TIMER (upper-left of the problem area) -->
           <div class="timer-mini" id="timerMini" aria-live="polite">Timer: off</div>
-
           <div class="turn" id="turnBanner">—</div>
           <div id="formula" class="formula">—</div>
 
-          <!-- single player -->
           <div id="singleRows" class="answer-rows" style="display:grid">
             <div class="row">
               <img id="soloAvatar" class="avatar hidden" alt="">
@@ -164,7 +158,6 @@
             </div>
           </div>
 
-          <!-- multiplayer (only active row shown) -->
           <div id="multiRows" class="answer-rows" style="display:none">
             <div class="row" id="rowP1">
               <img id="avatarP1" class="avatar" src="players/p1.png" alt="P1" onerror="this.style.display='none'">
@@ -181,7 +174,6 @@
           <div id="feedback" class="feedback">&nbsp;</div>
         </div>
 
-        <!-- per-player stats -->
         <div id="versus" class="stats" style="display:none">
           <div class="stat"><label id="lblP1">Aliah ✓ / ✗</label><b id="p1Score">0 / 0</b></div>
           <div class="stat"><label id="lblP2">Aliana ✓ / ✗</label><b id="p2Score">0 / 0</b></div>
@@ -191,7 +183,6 @@
         <footer>Shortcuts: Start turn (Space/Enter) • Submit (Enter) • Esc clear • S skip</footer>
       </div>
 
-      <!-- Right card now only shows the question index -->
       <div class="card">
         <div class="stat"><label>Question</label><b id="qIndex">0</b></div>
       </div>
@@ -232,7 +223,6 @@
   <audio id="sndCorrect" src="sounds/correct.mp3" preload="auto"></audio>
   <audio id="sndWrong"   src="sounds/wrong.mp3"   preload="auto"></audio>
   <audio id="sndFinish"  src="sounds/finish.mp3"  preload="auto"></audio>
-  <!-- NEW: UI action sounds -->
   <audio id="sndStart"   src="sounds/start.mp3"   preload="auto"></audio>
   <audio id="sndSingle"  src="sounds/single.mp3"  preload="auto"></audio>
   <audio id="sndHead"    src="sounds/head2head.mp3" preload="auto"></audio>
@@ -242,11 +232,9 @@
   // ===== Constants =====
   const NAME_P1 = 'Aliah';
   const NAME_P2 = 'Aliana';
-
-  // Minimum on-screen time (ms) for STILL images on yay/nay overlays
   const STILL_MIN_MS = 1600;
 
-  // --- Music pool (filenames inside /sounds) ---
+  // Music
   const MUSIC_TRACKS = [
     "Confused and Angry Robots.mp3",
     "Delightful Stroll.mp3",
@@ -255,11 +243,68 @@
     "Space Knights.mp3",
     "Water Theme - G Major - Jordan Ottesen.mp3"
   ];
+
+  // ===== DOM =====
+  const $=s=>document.querySelector(s);
+  const elMode=$('#mode'), elDiff=$('#difficulty'), elDiffVal=$('#diffVal');
+  const elTimerSec=$('#timerSec'), elTimerVal=$('#timerVal');
+  const elRounds=$('#rounds'), elPlayers=$('#players');
+
+  const elMusicOn=$('#musicOn'), elMusicVol=$('#musicVol'), BGM=$('#bgm');
+  const elSoundOn=$('#soundOn'), elVol=$('#volume'),
+        SND_OK=$('#sndCorrect'), SND_NO=$('#sndWrong'), SND_FINISH=$('#sndFinish'),
+        SND_START=$('#sndStart'), SND_SINGLE=$('#sndSingle'), SND_HEAD=$('#sndHead');
+
+  const elStart=$('#btnStart'), elReset=$('#btnReset');
+  const elSingle=$('#singleRows'), elMulti=$('#multiRows');
+  const elAns1=$('#answer1'), elBtn1=$('#btnSubmit1');
+  const elP1=$('#answerP1'), elP2=$('#answerP2');
+  const elBtnP1=$('#btnSubmitP1'), elBtnP2=$('#btnSubmitP2');
+  const rowP1=$('#rowP1'), rowP2=$('#rowP2');
+
+  const elFormula=$('#formula'), elFeedback=$('#feedback');
+  const elQIndex=$('#qIndex'), elTimer=$('#timerMini');
+  const elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
+  const elLblP1=$('#lblP1'), elLblP2=$('#lblP2'), elTurn=$('#turnBanner');
+
+  const fxGood=$('#fxGood'), fxBad=$('#fxBad'),
+        fxGoodImg=$('#fxGoodImg'), fxBadImg=$('#fxBadImg'),
+        fxGoodVid=$('#fxGoodVid'), fxBadVid=$('#fxBadVid');
+
+  const overlay=$('#turnOverlay'), overlayText=$('#turnText'), overlayAvatar=$('#turnAvatar'), btnBeginTurn=$('#btnBeginTurn');
+
+  const finalOv = $('#finalOverlay'), finalScore = $('#finalScore'), finalClose = $('#finalClose');
+
+  // ===== State =====
+  // IMAGE/GIF pools
+  const GOOD_IMAGES=[
+    "images/Correct1.webp","images/Correct2.webp","images/Correct3.png","images/Correct4.png","images/Correct5.png","images/Correct6.png","images/Correct7.png","images/Correct8.png","images/Correct9.png","images/Correct10.png",
+    "images/earthgif.gif","images/windgif.gif","images/firegif.gif","images/watergif.gif"
+  ];
+  const BAD_IMAGES =[
+    "images/Wrong1.png","images/Wrong2.png","images/Wrong3.png","images/Wrong4.jpg","images/Wrong5.webp","images/Wrong6.png","images/Wrong7.png"
+  ];
+  // MP4 pools (add your files)
+  const GOOD_VIDEOS=[/* "videos/good1.mp4","videos/good2.mp4" */];
+  const BAD_VIDEOS =[/* "videos/bad1.mp4","videos/bad2.mp4"  */];
+
+  // Unified pools (no prefilter; lazy-load with onerror fallback)
+  const GOOD_POOL = GOOD_IMAGES.concat(GOOD_VIDEOS);
+  const BAD_POOL  = BAD_IMAGES .concat(BAD_VIDEOS);
+
+  let running=false, current=null, qCount=0;
+  let good=0,bad=0;
+  let p1={ok:0,no:0,played:0}, p2={ok:0,no:0,played:0};
+  let tick=null, remaining=0, turn='p1', awaitingTurnStart=false;
+
+  const P1_IMG="players/p1.png";
+  const P2_IMG="players/p2.png";
+
+  // ===== Music =====
   function setRandomBgm(){
     if (!MUSIC_TRACKS.length) return;
     const pick = MUSIC_TRACKS[Math.floor(Math.random()*MUSIC_TRACKS.length)];
     BGM.src = "sounds/" + pick;
-    console.log('BGM src:', BGM.src);
   }
   function attemptAutoplay(){
     BGM.volume = +elMusicVol.value;
@@ -274,140 +319,25 @@
       document.addEventListener('keydown',   resume, { once:true });
     });
   }
-
-  // ===== DOM =====
-  var $=function(s){return document.querySelector(s);}
-  var elMode=$('#mode'), elDiff=$('#difficulty'), elDiffVal=$('#diffVal');
-  var elTimerSec=$('#timerSec'), elTimerVal=$('#timerVal');
-  var elRounds=$('#rounds'), elPlayers=$('#players');
-
-  var elMusicOn=$('#musicOn'), elMusicVol=$('#musicVol'), BGM=$('#bgm');
-  var elSoundOn=$('#soundOn'), elVol=$('#volume'),
-      SND_OK=$('#sndCorrect'), SND_NO=$('#sndWrong'), SND_FINISH=$('#sndFinish');
-  // NEW: UI action sounds
-  var SND_START=$('#sndStart'), SND_SINGLE=$('#sndSingle'), SND_HEAD=$('#sndHead');
-
-  var elStart=$('#btnStart'), elReset=$('#btnReset');
-  var elSingle=$('#singleRows'), elMulti=$('#multiRows');
-  var elAns1=$('#answer1'), elBtn1=$('#btnSubmit1');
-  var elP1=$('#answerP1'), elP2=$('#answerP2');
-  var elBtnP1=$('#btnSubmitP1'), elBtnP2=$('#btnSubmitP2');
-  var rowP1=$('#rowP1'), rowP2=$('#rowP2');
-
-  var elFormula=$('#formula'), elFeedback=$('#feedback');
-  var elQIndex=$('#qIndex'), elTimer=$('#timerMini'); // <-- timer now inside the problem area
-  var elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
-  var elLblP1=$('#lblP1'), elLblP2=$('#lblP2'), elTurn=$('#turnBanner');
-
-  var fxGood=$('#fxGood'), fxBad=$('#fxBad'),
-      fxGoodImg=$('#fxGoodImg'), fxBadImg=$('#fxBadImg'),
-      fxGoodVid=$('#fxGoodVid'), fxBadVid=$('#fxBadVid');
-
-  // Turn overlay
-  var overlay=$('#turnOverlay'), overlayText=$('#turnText'), overlayAvatar=$('#turnAvatar'), btnBeginTurn=$('#btnBeginTurn');
-
-  // Final overlay
-  var finalOv = $('#finalOverlay'), finalCard = $('#finalCard');
-  var finalScore = $('#finalScore'), finalClose = $('#finalClose');
-  function showFinal(text){ finalScore.textContent=text; finalOv.classList.add('show'); finalOv.setAttribute('aria-hidden','false'); }
-  function hideFinal(){ finalOv.classList.remove('show'); finalOv.setAttribute('aria-hidden','true'); }
-  finalClose.addEventListener('click', hideFinal);
-  finalOv.addEventListener('click', function(e){ if(e.target===finalOv) hideFinal(); });
-  window.addEventListener('keydown', function(e){ if(e.key==='Escape') hideFinal(); });
-
-  // ===== State =====
-  // (You can add .mp4 files here; the preloader filters missing ones)
-  var GOOD_CANDIDATES=[
-    "images/Correct1.webp","images/Correct2.webp","images/Correct3.png","images/Correct4.png","images/Correct5.png","images/Correct6.png","images/Correct7.png","images/Correct8.png","images/Correct9.png","images/Correct10.png",
-    "images/earthgif.gif","images/windgif.gif","images/firegif.gif","images/watergif.gif"
-  ];
-  var BAD_CANDIDATES =[
-    "images/Wrong1.png","images/Wrong2.png","images/Wrong3.png","images/Wrong4.jpg","images/Wrong5.webp","images/Wrong6.png","images/Wrong7.png"
-  ];
-
-  // Optional MP4 lists (replace with your actual files/paths)
-  var GOOD_VIDEOS = [
-    // "videos/good1.mp4","videos/good2.mp4"
-  ];
-  var BAD_VIDEOS = [
-    // "videos/bad1.mp4","videos/bad2.mp4"
-  ];
-
-  var GOOD_MEDIA=[], BAD_MEDIA=[];
-  var P1_IMG="players/p1.png";
-  var P2_IMG="players/p2.png";
-
-  var running=false, current=null, qCount=0;
-  var good=0,bad=0;
-  var p1={ok:0,no:0,played:0}, p2={ok:0,no:0,played:0};
-  var tick=null, remaining=0;
-  var turn='p1';
-  var awaitingTurnStart=false;
-
-  // ===== preload & filter available media (images/gifs/videos) =====
-  var BLANK_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
-
-  function isGif(src){ return /\.gif(?:$|\?)/i.test(src); }
-  function isVideo(src){ return /\.(mp4)(?:$|\?)/i.test(src); }
-
-  function filterExistingMedia(candidates, cb){
-    var out=[], i=0;
-    function next(){
-      if(i>=candidates.length){ cb(out); return; }
-      var src=candidates[i++];
-
-      if(isVideo(src)){
-        var v=document.createElement('video');
-        v.preload='metadata';
-        v.onloadedmetadata=function(){ out.push(src); cleanup(); };
-        v.onerror=cleanup;
-        v.src=src;
-        function cleanup(){ v.src=''; next(); }
-      }else{
-        var img=new Image();
-        img.onload=function(){ out.push(src); cleanup(); };
-        img.onerror=cleanup;
-        img.src=src;
-        function cleanup(){ img.src=''; next(); }
-      }
-    }
-    next();
-  }
-
-  filterExistingMedia(GOOD_CANDIDATES.concat(GOOD_VIDEOS),function(arr){
-    GOOD_MEDIA = arr.length?arr:[BLANK_IMG];
-    // set a default preview
-    if(isVideo(GOOD_MEDIA[0])){ fxGoodVid.src=GOOD_MEDIA[0]; } else { fxGoodImg.src=GOOD_MEDIA[0]; }
-  });
-  filterExistingMedia(BAD_CANDIDATES.concat(BAD_VIDEOS), function(arr){
-    BAD_MEDIA = arr.length?arr:[BLANK_IMG];
-    if(isVideo(BAD_MEDIA[0])){ fxBadVid.src=BAD_MEDIA[0]; } else { fxBadImg.src=BAD_MEDIA[0]; }
-  });
-
-  // ===== Music =====
   function updateMusic(){
     BGM.volume=+elMusicVol.value;
-    if(elMusicOn.value==="1"){
-      BGM.play().catch(function(){});
-    }else{
-      BGM.pause();
-    }
+    if(elMusicOn.value==="1"){ BGM.play().catch(()=>{}); }
+    else{ BGM.pause(); }
   }
   elMusicOn.addEventListener('change',updateMusic);
   elMusicVol.addEventListener('input',updateMusic);
 
-  // ===== Sound FX (oscillator + file playback) =====
-  var AC=(window.AudioContext||window.webkitAudioContext)? new (window.AudioContext||window.webkitAudioContext)() : null;
-  var master=AC? AC.createGain():null; if(master){ master.connect(AC.destination); master.gain.value=+elVol.value; }
+  // ===== Sound FX =====
+  const AC=(window.AudioContext||window.webkitAudioContext)? new (window.AudioContext||window.webkitAudioContext)() : null;
+  const master=AC? AC.createGain():null; if(master){ master.connect(AC.destination); master.gain.value=+elVol.value; }
   function soundOn(){ return elSoundOn.value==="1"; }
-  elVol.addEventListener('input',function(){ if(master) master.gain.value=+elVol.value; });
-
+  elVol.addEventListener('input',()=>{ if(master) master.gain.value=+elVol.value; });
   function tone(freq,dur,type,when,vol){
     if(!soundOn() || !AC) return;
     dur = dur||0.12; type=type||'sine'; when=when||0; vol=vol||0.2;
-    var o=AC.createOscillator(), g=AC.createGain();
+    const o=AC.createOscillator(), g=AC.createGain();
     o.type=type; o.frequency.value=freq; o.connect(g); g.connect(master);
-    var t=AC.currentTime+when; o.start(t);
+    const t=AC.currentTime+when; o.start(t);
     g.gain.setValueAtTime(0.0001,t);
     g.gain.exponentialRampToValueAtTime(vol,t+0.01);
     g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
@@ -417,14 +347,18 @@
     if(!soundOn() || !el) return;
     try{ el.currentTime=0; el.volume=+elVol.value; el.play(); }catch(e){}
   }
-  var sfx={
-    correct:function(){ playAudio(SND_OK); },
-    wrong:function(){ playAudio(SND_NO); },
-    tick:function(){ tone(900,0.03,'square',0,0.12); },
-    timeout:function(){ [523,392,330].forEach(function(f,i){tone(f,0.12,'sine',i*0.09,0.22);}); }
+  const sfx={
+    correct:()=>playAudio(SND_OK),
+    wrong:()=>playAudio(SND_NO),
+    tick:()=>tone(900,0.03,'square',0,0.12),
+    timeout:()=>[523,392,330].forEach((f,i)=>tone(f,0.12,'sine',i*0.09,0.22))
   };
 
-  // ===== GIF helpers =====
+  // ===== Media helpers =====
+  const BLANK_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
+  const isGif   = src => /\.gif(?:$|\?)/i.test(src);
+  const isVideo = src => /\.(mp4)(?:$|\?)/i.test(src);
+
   function gifHoldFromName(src){
     let m = src.match(/[?&]dur=(\d+)/i);
     if (m) return +m[1];
@@ -438,119 +372,94 @@
       const buf = await res.arrayBuffer();
       const dv = new DataView(buf);
       const len = dv.byteLength;
-      let totalCs = 0; // hundredths of a second
+      let totalCs = 0;
       for (let i=0; i < len - 9; i++){
         if (dv.getUint8(i)===0x21 && dv.getUint8(i+1)===0xF9 && dv.getUint8(i+2)===0x04){
           let delayCs = dv.getUint16(i+4, true);
-          if (delayCs < 3) delayCs = 10; // 100ms fallback
+          if (delayCs < 3) delayCs = 10;
           totalCs += delayCs;
           i += 7;
         }
       }
       if (totalCs === 0) return 2500;
       return totalCs * 10;
-    }catch(e){
-      return 2500;
-    }
+    }catch(e){ return 2500; }
   }
 
-  // ===== Overlay scheduling helpers =====
+  // Non-repeating random picker per overlay
+  function pickIndexAvoidRepeat(len, last){
+    if (len<=1) return 0;
+    let idx = Math.floor(Math.random()*len);
+    if (idx===last) idx = (idx+1) % len;
+    return idx;
+  }
+
+  // schedule hide
   function scheduleHide(el, ms){
     if (el._hideTimer) clearTimeout(el._hideTimer);
-    el._hideAt = (typeof performance!=='undefined' && performance.now) ? performance.now() + ms : Date.now() + ms;
-    el._hideTimer = setTimeout(function(){ el.classList.remove('show'); el._hideTimer=null; }, ms);
+    el._hideTimer = setTimeout(()=>{ el.classList.remove('show'); el._hideTimer=null; }, ms);
   }
 
-  // ===== Unified media flash (images/gifs/videos) =====
-  function flash(el, list, hold){
+  // Unified flash: images/gifs/mp4; no prefilter; retry on error
+  function flash(el, pool, hold){
     hold = hold || 600;
+    const isGood = (el === fxGood);
+    const imgEl  = isGood ? fxGoodImg : fxBadImg;
+    const vidEl  = isGood ? fxGoodVid : fxBadVid;
 
-    // choose pools
-    var isGood = (el === fxGood);
-    var imgEl  = isGood ? fxGoodImg : fxBadImg;
-    var vidEl  = isGood ? fxGoodVid : fxBadVid;
-
-    // housekeeping: stop any previous video
+    // stop prior video
     try{ vidEl.pause(); }catch(e){}
     vidEl.removeAttribute('src');
     vidEl.load?.();
 
-    // pick media
-    var pick  = (list && list.length) ? list[Math.floor(Math.random() * list.length)] : BLANK_IMG;
+    const lastKey = isGood ? '_lastGood' : '_lastBad';
+    const poolArr = (pool && pool.length) ? pool : [BLANK_IMG];
+    const idx = pickIndexAvoidRepeat(poolArr.length, el[lastKey] ?? -1);
+    el[lastKey] = idx;
+    let pick = poolArr[idx];
 
-    // show overlay now
     el.classList.add('show');
-    el._shownAt = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
-    var token = Math.random(); // race guard across flashes
-    el._flashToken = token;
+    imgEl.onerror = null;
 
-    // VIDEO branch — play full length; hide on 'ended'
+    // VIDEO
     if (isVideo(pick)){
-      imgEl.style.display = 'none';
-      vidEl.style.display = 'block';
-      vidEl.src = pick;
-      // allow audio; browsers may require prior gesture (your UI already has it)
-      const onEnded = function(){
-        if (el._flashToken !== token) return;
-        el.classList.remove('show');
-        cleanup();
-      };
-      const cleanup = function(){
-        vidEl.removeEventListener('ended', onEnded);
-      };
+      imgEl.style.display='none';
+      vidEl.style.display='block';
+      const onEnded = ()=>{ el.classList.remove('show'); cleanup(); };
+      const cleanup = ()=>{ vidEl.removeEventListener('ended', onEnded); };
       vidEl.addEventListener('ended', onEnded);
-
-      // Fallback hide if ended never fires (e.g., metadata failure)
-      vidEl.onloadedmetadata = function(){
-        if (el._flashToken !== token) return;
-        var durMs = Math.max(0, (vidEl.duration||0)*1000|0) + 150;
-        if (durMs > 0) scheduleHide(el, durMs);
-      };
-      // final safety fallback
-      scheduleHide(el, Math.max(hold, 4000));
-
-      // start playback
-      vidEl.play().catch(function(){
-        // if play fails, rely on fallbacks above
-      });
+      vidEl.onloadedmetadata = ()=>{ scheduleHide(el, Math.max(hold, ((vidEl.duration||0)*1000|0)+150)); };
+      vidEl.src = pick;
+      vidEl.play().catch(()=>{ scheduleHide(el, Math.max(hold, 4000)); });
       return;
     }
 
-    // IMAGE / GIF branch
-    imgEl.style.display = 'block';
-    vidEl.style.display = 'none';
+    // IMAGES / GIFs
+    vidEl.style.display='none';
+    imgEl.style.display='block';
+
+    imgEl.onerror = ()=>{ // retry with a different pick (up to 3 attempts)
+      let attempts = (el._errAttempts||0)+1;
+      el._errAttempts = attempts;
+      if (attempts<3){
+        el[lastKey] = -1; // allow any
+        flash(el, pool, hold);
+      }else{
+        imgEl.src = BLANK_IMG;
+        scheduleHide(el, STILL_MIN_MS);
+        el._errAttempts=0;
+      }
+    };
+    imgEl.onload = ()=>{ el._errAttempts=0; };
     imgEl.src = pick;
 
-    // Still images: enforce minimum hold
-    if (!isGif(pick)) {
-      scheduleHide(el, Math.max(hold, STILL_MIN_MS));
-      return;
-    }
+    if (!isGif(pick)) { scheduleHide(el, Math.max(hold, STILL_MIN_MS)); return; }
 
-    // Provisional hide for GIFs
     scheduleHide(el, hold);
-
-    // Override via filename query/tag
-    var override = gifHoldFromName(pick);
-    if (override != null){
-      var now = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
-      var elapsed = now - (el._shownAt || now);
-      var desired = Math.max(hold, override);
-      var remaining = Math.max(0, desired - elapsed);
-      if (el._flashToken === token) scheduleHide(el, remaining);
-      return;
-    }
-
-    // Compute true GIF duration and extend
-    computeGifDurationMs(pick).then(function(msGif){
-      if (el._flashToken !== token) return; // stale
-      var now = (typeof performance!=='undefined' && performance.now) ? performance.now() : Date.now();
-      var elapsed = now - (el._shownAt || now);
-      var desired = Math.max(hold, (msGif||2500) + 150); // pad for last frame
-      var remaining = Math.max(0, desired - elapsed);
-      scheduleHide(el, remaining);
-    }).catch(function(){
-      // fallback already scheduled
+    const override = gifHoldFromName(pick);
+    if (override != null){ scheduleHide(el, Math.max(hold, override)); return; }
+    computeGifDurationMs(pick).then(ms=>{
+      scheduleHide(el, Math.max(hold, (ms||2500)+150));
     });
   }
 
@@ -560,34 +469,34 @@
   function pickOp(m){return m!=='mix'?m:['add','sub','mul','div'][rnd(0,3)];}
   function rangeFor(op,L){
     L=clamp(+L,1,10);
-    var add=[9,12,20,30,40,60,90,120,180,250][L-1];
-    var mul=[5,6,8,9,10,12,15,18,20,25][L-1];
+    const add=[9,12,20,30,40,60,90,120,180,250][L-1];
+    const mul=[5,6,8,9,10,12,15,18,20,25][L-1];
     if(op==='mul') return {min:0,max:mul};
     if(op==='div') return {min:1,max:mul};
     return {min:0,max:add};
   }
   function accuracy(){
-    var t = good + bad;
+    const t = good + bad;
     return t ? Math.round((good / t) * 100) : '—';
   }
-  var ops={
-    add:{gen:function(L){var r=rangeFor('add',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:a+" + "+b,answer:a+b};}},
-    sub:{gen:function(L){var r=rangeFor('sub',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);if(b>a){var t=a;a=b;b=t;}return {text:a+" − "+b,answer:a-b};}},
-    mul:{gen:function(L){var r=rangeFor('mul',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:a+" × "+b,answer:a*b};}},
-    div:{gen:function(L){var r=rangeFor('div',L),b=rnd(r.min,r.max),q=rnd(r.min,r.max),a=b*q;return {text:a+" ÷ "+b,answer:q};}}
+  const ops={
+    add:{gen:L=>{const r=rangeFor('add',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:a+" + "+b,answer:a+b};}},
+    sub:{gen:L=>{const r=rangeFor('sub',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);if(b>a){const t=a;a=b;b=t;}return {text:a+" − "+b,answer:a-b};}},
+    mul:{gen:L=>{const r=rangeFor('mul',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:a+" × "+b,answer:a*b};}},
+    div:{gen:L=>{const r=rangeFor('div',L),b=rnd(r.min,r.max),q=rnd(r.min,r.max),a=b*q;return {text:a+" ÷ "+b,answer:q};}}
   };
 
   function activeName(){ return turn==='p1' ? NAME_P1 : NAME_P2; }
   function updateTurnBanner(){ elTurn.textContent = elPlayers.value==='2' ? ('Turn: '+activeName()) : '—'; }
   function setRowVis(){
-    var p1Active = (turn==='p1');
+    const p1Active = (turn==='p1');
     rowP1.classList.toggle('hidden',!p1Active);
     rowP2.classList.toggle('hidden', p1Active);
     elP1.disabled=!p1Active; elP2.disabled=p1Active;
     (p1Active?elP1:elP2).focus();
   }
   function uiMode(){
-    var two = elPlayers.value==="2";
+    const two = elPlayers.value==="2";
     elSingle.style.display = two ? 'none':'grid';
     elMulti .style.display = two ? 'grid':'none';
     elVersus.style.display = two ? 'grid':'none';
@@ -609,8 +518,8 @@
     if(elPlayers.value!=='2') return;
     overlayText.textContent = 'Next up: ' + activeName();
     overlayAvatar.src = (turn==='p1')? P1_IMG : P2_IMG;
-    overlayAvatar.onerror = function(){ overlayAvatar.style.display='none'; };
-    overlayAvatar.onload  = function(){ overlayAvatar.style.display='block'; };
+    overlayAvatar.onerror = ()=>{ overlayAvatar.style.display='none'; };
+    overlayAvatar.onload  = ()=>{ overlayAvatar.style.display='block'; };
     overlay.classList.add('show');
     awaitingTurnStart = true;
   }
@@ -628,8 +537,8 @@
     if(awaitingTurnStart && (e.key===' ' || e.key==='Enter')){ e.preventDefault(); btnBeginTurn.click(); }
   });
 
-  function everyonePlayed(){ var r=parseInt(elRounds.value,10); return (p1.played>=r && p2.played>=r); }
-  function sessionFinishedFor(id){ var r=parseInt(elRounds.value,10); return (id==='p1'?p1:p2).played>=r; }
+  function everyonePlayed(){ const r=parseInt(elRounds.value,10); return (p1.played>=r && p2.played>=r); }
+  function sessionFinishedFor(id){ const r=parseInt(elRounds.value,10); return (id==='p1'?p1:p2).played>=r; }
 
   function start(){
     if(running) return;
@@ -638,9 +547,7 @@
     elStart.textContent='Running…'; elStart.disabled=true;
 
     playAudio(SND_START);
-
-    setRandomBgm();
-    attemptAutoplay();
+    setRandomBgm(); attemptAutoplay();
 
     if(elPlayers.value==="2"){
       turn = (Math.random()<0.5)?'p1':'p2';
@@ -655,7 +562,7 @@
   function reset(){
     stopTimer(); running=false; current=null; qCount=good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     elStart.textContent='Start ▶'; elStart.disabled=false;
-    [elAns1,elP1,elP2].forEach(function(i){i.value=''; i.disabled=true;});
+    [elAns1,elP1,elP2].forEach(i=>{i.value=''; i.disabled=true;});
     elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
     elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
     elQIndex.textContent='0';
@@ -675,16 +582,16 @@
         return;
       }
     } else {
-      var maxQ = parseInt(elRounds.value, 10);
+      const maxQ = parseInt(elRounds.value, 10);
       if (!initial && qCount >= maxQ) return finish();
     }
 
     qCount++;
-    var mode=pickOp(elMode.value), L=+elDiff.value;
+    const mode=pickOp(elMode.value), L=+elDiff.value;
     current=ops[mode].gen(L);
     elFormula.textContent = current.text;
     elQIndex.textContent=qCount;
-    [elAns1,elP1,elP2].forEach(function(i){i.value='';});
+    [elAns1,elP1,elP2].forEach(i=>{i.value='';});
     elFeedback.textContent=' '; elFeedback.className='feedback';
     startTimerIfNeeded();
   }
@@ -693,32 +600,35 @@
     if (SND_FINISH) { try { SND_FINISH.currentTime = 0; SND_FINISH.play(); } catch(e){} }
     stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
 
-    var scoreLine = '';
+    let scoreLine = '';
     if(elPlayers.value==='2'){
-      var p1Score=p1.ok, p2Score=p2.ok;
-      var n1=NAME_P1, n2=NAME_P2;
-      var winner;
+      const p1Score=p1.ok, p2Score=p2.ok;
+      const n1=NAME_P1, n2=NAME_P2;
+      let winner;
       if(p1Score>p2Score) winner = n1 + ' wins!';
       else if(p2Score>p1Score) winner = n2 + ' wins!';
       else {
-        var t1=p1.no,t2=p2.no;
+        const t1=p1.no,t2=p2.no;
         winner = (t1<t2 ? (n1+' wins by fewer mistakes!') :
                  (t2<t1 ? (n2+' wins by fewer mistakes!') : 'It’s a tie!'));
       }
       scoreLine = winner + ' ('+n1+' '+p1.ok+'/'+p1.no+' vs '+n2+' '+p2.ok+'/'+p2.no+')';
     }else{
-      var t = good + bad;
-      var acc = t ? Math.round((good / t) * 100) : '—';
+      const t = good + bad;
+      const acc = t ? Math.round((good / t) * 100) : '—';
       scoreLine = good+' correct, '+bad+' wrong, accuracy '+(acc==='—'?'—':acc+'%');
     }
-
-    elFeedback.textContent=' ';
-    elFeedback.className='feedback';
-    showFinal(scoreLine);
+    elFeedback.textContent=' '; elFeedback.className='feedback'; showFinal(scoreLine);
   }
 
+  function showFinal(text){ finalScore.textContent=text; finalOv.classList.add('show'); finalOv.setAttribute('aria-hidden','false'); }
+  function hideFinal(){ finalOv.classList.remove('show'); finalOv.setAttribute('aria-hidden','true'); }
+  finalClose.addEventListener('click', hideFinal);
+  finalOv.addEventListener('click', e=>{ if(e.target===finalOv) hideFinal(); });
+  window.addEventListener('keydown', e=>{ if(e.key==='Escape') hideFinal(); });
+
   function consumeRound(){ if(elPlayers.value==='2'){ (turn==='p1'?p1:p2).played++; } }
-  function leadText(){ var d=p1.ok-p2.ok; return d===0?'Tied':(d>0?(NAME_P1)+' +'+d:(NAME_P2)+' +'+(-d)); }
+  function leadText(){ const d=p1.ok-p2.ok; return d===0?'Tied':(d>0?(NAME_P1)+' +'+d:(NAME_P2)+' +'+(-d)); }
 
   function handleSubmit(val, who){
     if(awaitingTurnStart) return;
@@ -726,8 +636,8 @@
 
     stopTimer();
 
-    var num = Number(val);
-    var correct = (num === current.answer);
+    const num = Number(val);
+    const correct = (num === current.answer);
 
     if (correct) {
       good++;
@@ -735,10 +645,10 @@
       if (who === 'p2'){ p2.ok++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
       elFeedback.textContent = (who==='solo' ? 'Correct!' : (activeName() + ' scores!'));
       elFeedback.className = 'feedback ok';
-      sfx.correct(); flash(fxGood, GOOD_MEDIA, 400);
+      sfx.correct(); flash(fxGood, GOOD_POOL, 400);
 
       consumeRound();
-      setTimeout(function(){ next(); }, 180);
+      setTimeout(()=>{ next(); }, 180);
       return;
     }
 
@@ -747,10 +657,10 @@
     if (who === 'p2'){ p2.no++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
     elFeedback.textContent = '✗ Wrong';
     elFeedback.className = 'feedback no';
-    sfx.wrong(); flash(fxBad, BAD_MEDIA, 450);
+    sfx.wrong(); flash(fxBad, BAD_POOL, 450);
 
     consumeRound();
-    setTimeout(function(){ next(); }, 200);
+    setTimeout(()=>{ next(); }, 200);
   }
 
   function skip(){
@@ -759,64 +669,57 @@
     bad++;
     elFeedback.textContent='⏭ Skipped';
     elFeedback.className='feedback no';
-    flash(fxBad, BAD_MEDIA, 300);
+    flash(fxBad, BAD_POOL, 300);
     consumeRound();
     next();
   }
 
-  // ===== Timer =====
+  // Timer
   function startTimerIfNeeded(){
-    var sec=+elTimerSec.value;
+    const sec=+elTimerSec.value;
     if(!sec){ elTimer.textContent='Timer: off'; elTimer.style.color='var(--ink)'; return; }
     remaining=sec; renderTimer(); stopTimer();
-    tick=setInterval(function(){
+    tick=setInterval(()=>{
       remaining--;
       if(remaining>0){ sfx.tick(); renderTimer(); return; }
       bad++;
       elFeedback.textContent='Time out — next!'; elFeedback.className='feedback no';
-      sfx.timeout(); flash(fxBad,BAD_MEDIA,700);
+      sfx.timeout(); flash(fxBad,BAD_POOL,700);
       consumeRound(); next();
     },1000);
   }
   function stopTimer(){ if(tick){ clearInterval(tick); tick=null; } }
   function renderTimer(){
-    var warn=remaining<=Math.max(3,Math.floor(+elTimerSec.value*0.25));
+    const warn=remaining<=Math.max(3,Math.floor(+elTimerSec.value*0.25));
     elTimer.textContent='⏱ '+remaining+'s'; elTimer.style.color=warn?'var(--warn)':'var(--ink)';
   }
 
-  // ===== Events =====
-  elDiff.addEventListener('input',function(){ elDiffVal.textContent=elDiff.value; });
-  elTimerSec.addEventListener('input',function(){ elTimerVal.textContent=elTimerSec.value+'s'; });
+  // UI events
+  elDiff.addEventListener('input',()=>{ elDiffVal.textContent=elDiff.value; });
+  elTimerSec.addEventListener('input',()=>{ elTimerVal.textContent=elTimerSec.value+'s'; });
 
   elStart.addEventListener('click',start);
   elReset.addEventListener('click',reset);
 
-  elBtn1.addEventListener('click',function(){ handleSubmit(elAns1.value.trim(),'solo'); });
-  elBtnP1.addEventListener('click',function(){ if(elPlayers.value==='2' && turn==='p1') handleSubmit(elP1.value.trim(),'p1'); });
-  elBtnP2.addEventListener('click',function(){ if(elPlayers.value==='2' && turn==='p2') handleSubmit(elP2.value.trim(),'p2'); });
+  elBtn1.addEventListener('click',()=>{ handleSubmit(elAns1.value.trim(),'solo'); });
+  elBtnP1.addEventListener('click',()=>{ if(elPlayers.value==='2' && turn==='p1') handleSubmit(elP1.value.trim(),'p1'); });
+  elBtnP2.addEventListener('click',()=>{ if(elPlayers.value==='2' && turn==='p2') handleSubmit(elP2.value.trim(),'p2'); });
 
-  elAns1.addEventListener('keydown',function(e){ if(e.key==='Enter')handleSubmit(elAns1.value.trim(),'solo'); if(e.key==='Escape')elAns1.value=''; });
-  elP1  .addEventListener('keydown',function(e){ if(e.key==='Enter'&&turn==='p1')handleSubmit(elP1.value.trim(),'p1'); if(e.key==='Escape')elP1.value=''; });
-  elP2  .addEventListener('keydown',function(e){ if(e.key==='Enter'&&turn==='p2')handleSubmit(elP2.value.trim(),'p2'); if(e.key==='Escape')elP2.value=''; });
+  elAns1.addEventListener('keydown',e=>{ if(e.key==='Enter')handleSubmit(elAns1.value.trim(),'solo'); if(e.key==='Escape')elAns1.value=''; });
+  elP1  .addEventListener('keydown',e=>{ if(e.key==='Enter'&&turn==='p1')handleSubmit(elP1.value.trim(),'p1'); if(e.key==='Escape')elP1.value=''; });
+  elP2  .addEventListener('keydown',e=>{ if(e.key==='Enter'&&turn==='p2')handleSubmit(elP2.value.trim(),'p2'); if(e.key==='Escape')elP2.value=''; });
 
-  window.addEventListener('keydown',function(e){
-    if(e.key && e.key.toLowerCase()==='s') skip();
+  window.addEventListener('keydown',e=>{ if(e.key && e.key.toLowerCase()==='s') skip(); });
+
+  [elAns1,elP1,elP2].forEach(inp=>{
+    inp.addEventListener('input',()=>{ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); });
   });
 
-  // numeric-only
-  [elAns1,elP1,elP2].forEach(function(inp){
-    inp.addEventListener('input',function(){ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); });
-  });
-
-  // ===== Init =====
-  setRandomBgm();
-  attemptAutoplay();
-
-  // init visuals
+  // Init
+  setRandomBgm(); attemptAutoplay();
   fxGoodImg.src = "images/Macky-Correct-2.jpg";
   fxBadImg.src  = "images/Macky-Incorrect-1.png";
-  fxGoodVid.style.display='none';
-  fxBadVid.style.display='none';
+  fxGoodVid.style.display='none'; fxBadVid.style.display='none';
 
   stopTimer(); running=false; current=null; qCount=0;
   elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
