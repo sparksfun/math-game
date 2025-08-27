@@ -1,4 +1,4 @@
-<!DOCTYPE html>  
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -278,17 +278,18 @@
   const finalOv = $('#finalOverlay'), finalScore = $('#finalScore'), finalClose = $('#finalClose');
 
   // ===== State =====
+  // FIX: removed stray undefined entry caused by double comma
   const GOOD_IMAGES=[
-    "images/Correct1.webp","images/Correct2.webp","images/Correct4.png","images/Correct5.png","images/Correct6.png",
-    "images/Correct7.png","images/Correct8.png","images/Correct9.png","images/Correct10.png","images/KpopRight1.mp4",
-    "images/KpopRight3.mp4","images/KpopRight4.mp4","images/KpopRight5.mp4","images/KpopRight6.mp4",,"images/KpopRight8.mp4"
+    "images/Correct1.webp","images/Correct2.webp","images/Correct3.png","images/Correct4.png","images/Correct5.png","images/Correct6.png",
+    "images/Correct7.png","images/Correct8.png","images/Correct9.png","images/Correct10.png",
+    "images/KpopRight1.mp4","images/KpopRight3.mp4","images/KpopRight4.mp4","images/KpopRight5.mp4","images/KpopRight6.mp4","images/KpopRight8.mp4"
   ];
   const BAD_IMAGES =[
     "images/Wrong1.png","images/Wrong2.png","images/Wrong3.png","images/Wrong4.jpg","images/Wrong5.webp","images/Wrong6.png","images/Wrong7.png",
     "images/KpopWrong1.mp4","images/KpopWrong2.mp4","images/KpopWrong3.mp4","images/KpopWrong4.mp4"
   ];
-  const GOOD_VIDEOS=[/* "videos/good1.mp4","videos/good2.mp4" */];
-  const BAD_VIDEOS =[/* "videos/bad1.mp4","videos/bad2.mp4"  */];
+  const GOOD_VIDEOS=[/* optional video files */];
+  const BAD_VIDEOS =[/* optional video files */];
 
   const GOOD_POOL = GOOD_IMAGES.concat(GOOD_VIDEOS);
   const BAD_POOL  = BAD_IMAGES .concat(BAD_VIDEOS);
@@ -298,7 +299,7 @@
   let p1={ok:0,no:0,played:0}, p2={ok:0,no:0,played:0};
   let tick=null, remaining=0, turn='p1', awaitingTurnStart=false;
 
-  // overlay guard + streaks
+  // overlay guard + streaks + submit guard
   let awaitingOverlay=false;
   let streakSolo=0, streakP1=0, streakP2=0;
 
@@ -364,7 +365,6 @@
   let duckDepth = 0;
   function beginDucking(){
     duckDepth++;
-    // mute bgm immediately, but remember it follows UI when restored
     try{ BGM.muted = true; }catch(e){}
     if(master && AC){
       const now = AC.currentTime;
@@ -375,7 +375,6 @@
   function endDucking(){
     duckDepth = Math.max(0, duckDepth-1);
     if(duckDepth>0) return;
-    // restore to current UI values
     try{ BGM.muted = false; BGM.volume = +elMusicVol.value; }catch(e){}
     if(master && AC){
       const now = AC.currentTime;
@@ -390,9 +389,9 @@
   const isVideo = src => /\.(mp4)(?:$|\?)/i.test(src);
 
   function gifHoldFromName(src){
-    let m = src.match(/[?&]dur=(\d+)/i);
+    let m = src && src.match ? src.match(/[?&]dur=(\d+)/i) : null;
     if (m) return +m[1];
-    m = src.match(/@(\d+(?:\.\d+)?)(ms|s)\.gif(?:$|\?)/i);
+    m = src && src.match ? src.match(/@(\d+(?:\.\d+)?)(ms|s)\.gif(?:$|\?)/i) : null;
     if (m) return m[2].toLowerCase()==='s' ? Math.round(+m[1]*1000) : Math.round(+m[1]);
     return null;
   }
@@ -444,10 +443,10 @@
       vidEl.load?.();
 
       const lastKey = isGood ? '_lastGood' : '_lastBad';
-      const poolArr = (pool && pool.length) ? pool : [BLANK_IMG];
+      const poolArr = (pool && pool.length) ? pool.filter(Boolean) : [BLANK_IMG];
       const idx = pickIndexAvoidRepeat(poolArr.length, el[lastKey] ?? -1);
       el[lastKey] = idx;
-      let pick = poolArr[idx];
+      const pick = poolArr[idx];
 
       el.classList.add('show');
       imgEl.onerror = null;
@@ -455,8 +454,6 @@
       if (isVideo(pick)){
         imgEl.style.display='none';
         vidEl.style.display='block';
-
-        // set desired clip volume
         vidEl.volume = 1;
 
         const onEnded = ()=>{
@@ -470,18 +467,15 @@
           if (vidEl._fallbackTimer){ clearTimeout(vidEl._fallbackTimer); vidEl._fallbackTimer=null; }
         };
 
-        // DUCK: mute music + fx while MP4 plays
         beginDucking();
-
         vidEl.addEventListener('ended', onEnded);
         vidEl.onloadedmetadata = ()=>{
           const ms = Math.max(hold, ((vidEl.duration||0)*1000|0)+150);
           vidEl._fallbackTimer = setTimeout(()=>{ onEnded(); }, ms+50);
         };
         vidEl.src = pick;
-        
+
         vidEl.play().catch(()=>{
-          // if playback fails, unduck after fallback window
           scheduleHide(el, Math.max(hold, 4000), ()=>{ endDucking(); resolve(); });
         });
         return;
@@ -504,7 +498,7 @@
         }
       };
       imgEl.onload = ()=>{ el._errAttempts=0; };
-      imgEl.src = pick;
+      imgEl.src = pick || BLANK_IMG;
 
       if (!isGif(pick)) {
         scheduleHide(el, Math.max(hold, STILL_MIN_MS), resolve);
@@ -670,6 +664,7 @@
     qCount++;
     const mode=pickOp(elMode.value), L=+elDiff.value;
     current=ops[mode].gen(L);
+    current._done=false; // guard
     elFormula.textContent = current.text;
     elQIndex.textContent=qCount;
     [elAns1,elP1,elP2].forEach(i=>{i.value='';});
@@ -731,8 +726,11 @@
   async function handleSubmit(val, who){
     if(awaitingTurnStart) return;
     if(!running || !current || val==='') return;
-    if(awaitingOverlay) return;
 
+    // FIX: hard guard to stop rapid double-submits on the same question
+    if (awaitingOverlay || current._done) return;
+    current._done = true;              // mark consumed immediately
+    freezeInputs();                    // freeze instantly to block extra Enter
     stopTimer();
 
     const num = Number(val);
@@ -769,7 +767,9 @@
 
   async function skip(){
     if(awaitingTurnStart || !running) return;
-    if(awaitingOverlay) return;
+    if(awaitingOverlay || !current || current._done) return;
+    current._done = true;
+    freezeInputs();
     stopTimer();
     bad++;
     setCurrentStreak(0); renderStreak();
@@ -789,6 +789,8 @@
       if(remaining>0){ sfx.tick(); renderTimer(); return; }
       // timeout
       stopTimer();
+      if (!current || current._done) { renderTimer(); return; } // guard
+      current._done = true;
       bad++;
       setCurrentStreak(0); renderStreak();
       elFeedback.textContent='Time out — next!'; elFeedback.className='feedback no';
@@ -823,8 +825,6 @@
   [elAns1,elP1,elP2].forEach(inp=>{
     inp.addEventListener('input',()=>{ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); });
   });
-
-
 
   // Init
   setRandomBgm(); attemptAutoplay();
