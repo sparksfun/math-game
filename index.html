@@ -1,4 +1,4 @@
-<!DOCTYPE html>   
+<!DOCTYPE html>  
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -288,20 +288,6 @@
   const GOOD_VIDEOS=[/* "videos/good1.mp4","videos/good2.mp4" */];
   const BAD_VIDEOS =[/* "videos/bad1.mp4","videos/bad2.mp4"  */];
 
-  // NEW: Streak-tier media pools (replace with your assets)
-  const STREAK25_POOL = [
-    "streaks/25/cheer1.gif","streaks/25/mini1.mp4","streaks/25/badge1.png"
-  ];
-  const STREAK50_POOL = [
-    "streaks/50/cheer2.gif","streaks/50/mini2.mp4","streaks/50/badge2.png"
-  ];
-  const STREAK75_POOL = [
-    "streaks/75/cheer3.gif","streaks/75/mini3.mp4","streaks/75/badge3.png"
-  ];
-  const PERFECT_POOL = [
-    "streaks/perfect/confetti1.mp4","streaks/perfect/trophy.gif","streaks/perfect/banner.png"
-  ];
-
   const GOOD_POOL = GOOD_IMAGES.concat(GOOD_VIDEOS);
   const BAD_POOL  = BAD_IMAGES .concat(BAD_VIDEOS);
 
@@ -313,11 +299,6 @@
   // overlay guard + streaks
   let awaitingOverlay=false;
   let streakSolo=0, streakP1=0, streakP2=0;
-
-  // NEW: one-shot tier flags per runner
-  let tiersSolo = { hit25:false, hit50:false, hit75:false };
-  let tiersP1   = { hit25:false, hit50:false, hit75:false };
-  let tiersP2   = { hit25:false, hit50:false, hit75:false };
 
   const P1_IMG="players/p1.png";
   const P2_IMG="players/p2.png";
@@ -350,7 +331,7 @@
   elMusicVol.addEventListener('input',updateMusic);
 
   // ===== Sound FX =====
-  const AC=(window.AudioContext||window.webkitAudioContext)? new (window.AudioContext||window.webkitAudioContext)()() : null;
+  const AC=(window.AudioContext||window.webkitAudioContext)? new (window.AudioContext||window.webkitAudioContext)() : null;
   const master=AC? AC.createGain():null; if(master){ master.connect(AC.destination); master.gain.value=+elVol.value; }
   function soundOn(){ return elSoundOn.value==="1"; }
   elVol.addEventListener('input',()=>{ if(master) master.gain.value=+elVol.value; });
@@ -381,6 +362,7 @@
   let duckDepth = 0;
   function beginDucking(){
     duckDepth++;
+    // mute bgm immediately, but remember it follows UI when restored
     try{ BGM.muted = true; }catch(e){}
     if(master && AC){
       const now = AC.currentTime;
@@ -391,6 +373,7 @@
   function endDucking(){
     duckDepth = Math.max(0, duckDepth-1);
     if(duckDepth>0) return;
+    // restore to current UI values
     try{ BGM.muted = false; BGM.volume = +elMusicVol.value; }catch(e){}
     if(master && AC){
       const now = AC.currentTime;
@@ -470,6 +453,8 @@
       if (isVideo(pick)){
         imgEl.style.display='none';
         vidEl.style.display='block';
+
+        // set desired clip volume
         vidEl.volume = 1;
 
         const onEnded = ()=>{
@@ -483,6 +468,7 @@
           if (vidEl._fallbackTimer){ clearTimeout(vidEl._fallbackTimer); vidEl._fallbackTimer=null; }
         };
 
+        // DUCK: mute music + fx while MP4 plays
         beginDucking();
 
         vidEl.addEventListener('ended', onEnded);
@@ -491,7 +477,9 @@
           vidEl._fallbackTimer = setTimeout(()=>{ onEnded(); }, ms+50);
         };
         vidEl.src = pick;
+        
         vidEl.play().catch(()=>{
+          // if playback fails, unduck after fallback window
           scheduleHide(el, Math.max(hold, 4000), ()=>{ endDucking(); resolve(); });
         });
         return;
@@ -591,7 +579,7 @@
     if(elPlayers.value==='1'){
       elAns1.disabled=false; elAns1.focus();
     }else{
-      setRowVis();
+      setRowVis(); // sets proper enabled field and focuses it
     }
   }
 
@@ -613,46 +601,10 @@
   }
   function hideTurnOverlay(){ overlay.classList.remove('show'); awaitingTurnStart=false; }
 
-  // NEW: threshold math from rounds
-  function getThresholds(){
-    const R = parseInt(elRounds.value,10) || 10;
-    return {
-      t25: Math.ceil(R * 0.25),
-      t50: Math.ceil(R * 0.50),
-      t75: Math.ceil(R * 0.75),
-      R
-    };
-  }
-
-  // NEW: helpers to access/reset tier flags
-  function tiersForWho(who){
-    if(who==='p1') return tiersP1;
-    if(who==='p2') return tiersP2;
-    return tiersSolo;
-  }
-  function resetTiersForWho(who){
-    const obj = tiersForWho(who);
-    obj.hit25 = obj.hit50 = obj.hit75 = false;
-  }
-
-  // NEW: pick tier pool if streak hits thresholds (fires once per tier per runner)
-  function chooseTierPool(who){
-    const { t25, t50, t75 } = getThresholds();
-    const s = currentStreak();
-    const flags = tiersForWho(who);
-    if (s === t25 && !flags.hit25){ flags.hit25=true; return STREAK25_POOL; }
-    if (s === t50 && !flags.hit50){ flags.hit50=true; return STREAK50_POOL; }
-    if (s === t75 && !flags.hit75){ flags.hit75=true; return STREAK75_POOL; }
-    return null;
-  }
-
   btnBeginTurn.addEventListener('click', function(){
     hideTurnOverlay();
     setRandomBgm();
     attemptAutoplay();
-    // reset per-runner tiers & streak at the start of their turn
-    setCurrentStreak(0);
-    resetTiersForWho(turn);
     qCount = 0; elQIndex.textContent = '0';
     setRowVis();
     next(true);
@@ -669,11 +621,6 @@
     if(AC && AC.state==='suspended'){ AC.resume(); }
     running=true; qCount=0; good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     streakSolo=streakP1=streakP2=0; renderStreak();
-    // reset all tier flags on session start
-    tiersSolo={hit25:false,hit50:false,hit75:false};
-    tiersP1={hit25:false,hit50:false,hit75:false};
-    tiersP2={hit25:false,hit50:false,hit75:false};
-
     elStart.textContent='Running…'; elStart.disabled=true;
 
     playAudio(SND_START);
@@ -685,7 +632,6 @@
       qCount = 0; elQIndex.textContent = '0';
       showTurnOverlay();
     }else{
-      resetTiersForWho('solo');
       elAns1.disabled=false; next(true); elAns1.focus();
     }
     uiMode();
@@ -694,9 +640,6 @@
   function reset(){
     stopTimer(); running=false; current=null; qCount=good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     streakSolo=streakP1=streakP2=0; renderStreak();
-    tiersSolo={hit25:false,hit50:false,hit75:false};
-    tiersP1={hit25:false,hit50:false,hit75:false};
-    tiersP2={hit25:false,hit50:false,hit75:false};
     elStart.textContent='Start ▶'; elStart.disabled=false;
     [elAns1,elP1,elP2].forEach(i=>{i.value=''; i.disabled=true;});
     elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
@@ -731,32 +674,15 @@
     elFeedback.textContent=' '; elFeedback.className='feedback';
     renderStreak();
 
+    // ensure correct input enabled for this state
     unfreezeInputs();
+
     startTimerIfNeeded();
   }
 
-  async function finish(){
+  function finish(){
     if (SND_FINISH) { try { SND_FINISH.currentTime = 0; SND_FINISH.play(); } catch(e){} }
     stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
-
-    const R = parseInt(elRounds.value,10);
-
-    // NEW: Perfect streak celebration(s)
-    if(elPlayers.value==='1'){
-      if (good === R && bad === 0){
-        await flashAsync(fxGood, PERFECT_POOL, 900);
-      }
-    }else{
-      // play for each perfect runner (sequence them)
-      if (p1.ok === R && p1.no === 0){
-        turn = 'p1'; updateTurnBanner();
-        await flashAsync(fxGood, PERFECT_POOL, 900);
-      }
-      if (p2.ok === R && p2.no === 0){
-        turn = 'p2'; updateTurnBanner();
-        await flashAsync(fxGood, PERFECT_POOL, 900);
-      }
-    }
 
     let scoreLine = '';
     if(elPlayers.value==='2'){
@@ -821,9 +747,7 @@
       sfx.correct();
       consumeRound();
 
-      // NEW: choose tier pool if threshold reached; otherwise default GOOD_POOL
-      const tierPool = chooseTierPool(who);
-      await afterOverlayThenNext(flashAsync(fxGood, tierPool || GOOD_POOL, 400));
+      await afterOverlayThenNext(flashAsync(fxGood, GOOD_POOL, 400));
       return;
     }
 
@@ -897,6 +821,8 @@
   [elAns1,elP1,elP2].forEach(inp=>{
     inp.addEventListener('input',()=>{ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); });
   });
+
+
 
   // Init
   setRandomBgm(); attemptAutoplay();
