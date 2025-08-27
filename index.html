@@ -136,15 +136,6 @@
         <input id="volume" type="range" min="0" max="1" step="0.01" value="0.5" />
       </div>
 
-      <!-- NEW: MP4 clip volume -->
-      <div class="group">
-        <label>Clip (MP4) Vol</label>
-        <div class="range-row">
-          <input id="clipVol" type="range" min="0" max="1" step="0.01" value="0.9" />
-          <span id="clipVolVal" class="chip">0.90</span>
-        </div>
-      </div>
-
       <div class="group">
         <label>&nbsp;</label>
         <span class="chip">Start turn: Space/Enter • Submit: Enter • Skip: S</span>
@@ -263,8 +254,6 @@
   const elSoundOn=$('#soundOn'), elVol=$('#volume'),
         SND_OK=$('#sndCorrect'), SND_NO=$('#sndWrong'), SND_FINISH=$('#sndFinish'),
         SND_START=$('#sndStart'), SND_SINGLE=$('#sndSingle'), SND_HEAD=$('#sndHead');
-
-  const elClipVol=$('#clipVol'), elClipVolVal=$('#clipVolVal');
 
   const elStart=$('#btnStart'), elReset=$('#btnReset');
   const elSingle=$('#singleRows'), elMulti=$('#multiRows');
@@ -466,7 +455,7 @@
         vidEl.style.display='block';
 
         // set desired clip volume
-        try{ vidEl.volume = +elClipVol.value; }catch(e){}
+        vidEl.volume = 0.9;
 
         const onEnded = ()=>{
           cleanup();
@@ -488,6 +477,7 @@
           vidEl._fallbackTimer = setTimeout(()=>{ onEnded(); }, ms+50);
         };
         vidEl.src = pick;
+        
         vidEl.play().catch(()=>{
           // if playback fails, unduck after fallback window
           scheduleHide(el, Math.max(hold, 4000), ()=>{ endDucking(); resolve(); });
@@ -832,8 +822,7 @@
     inp.addEventListener('input',()=>{ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); });
   });
 
-  // NEW: clip volume UI value
-  elClipVol.addEventListener('input', ()=>{ elClipVolVal.textContent = (+elClipVol.value).toFixed(2); });
+
 
   // Init
   setRandomBgm(); attemptAutoplay();
