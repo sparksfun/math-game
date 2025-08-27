@@ -26,12 +26,11 @@
   .grid {display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: stretch; }
   .card{background:var(--panel);border:1px solid #262b4a;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
   .problem{position:relative;display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
- .formula {
-  font-size:64px;font-weight:800;letter-spacing:1px;margin-top:40px;margin-left:40px;}
+ .formula { font-size:64px;font-weight:800;letter-spacing:1px;margin-top:40px;margin-left:40px; }
 
   .timer-mini{position:absolute;top:12px;left:12px;width:88px;height:88px;display:grid;place-items:center;background:#0e1330;border:1px solid #2b3155;border-radius:12px;font-weight:800;letter-spacing:.5px;font-size:20px;box-shadow:0 6px 20px rgba(0,0,0,.35);}
 
-.answer-rows {display:flex;flex-direction:column;justify-content:flex-end;height:100%;}
+  .answer-rows {display:flex;flex-direction:column;justify-content:flex-end;height:100%;}
 
   .row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
   .row input{padding:12px 14px;border-radius:12px;border:1px solid #2c335a;outline:none;background:#0e1330;color:#fff;font-size:clamp(18px,2.2vw,22px);text-align:center;letter-spacing:.5px}
@@ -279,7 +278,6 @@
   const finalOv = $('#finalOverlay'), finalScore = $('#finalScore'), finalClose = $('#finalClose');
 
   // ===== State =====
-  // IMAGE/GIF pools
   const GOOD_IMAGES=[
     "images/Correct1.webp","images/Correct2.webp","images/Correct3.png","images/Correct4.png","images/Correct5.png","images/Correct6.png","images/Correct7.png","images/Correct8.png","images/Correct9.png","images/Correct10.png",
     "images/KpopHowitsdone.mp4"
@@ -287,11 +285,9 @@
   const BAD_IMAGES =[
     "images/Wrong1.png","images/Wrong2.png","images/Wrong3.png","images/Wrong4.jpg","images/Wrong5.webp","images/Wrong6.png","images/Wrong7.png"
   ];
-  // MP4 pools (add your files)
   const GOOD_VIDEOS=[/* "videos/good1.mp4","videos/good2.mp4" */];
   const BAD_VIDEOS =[/* "videos/bad1.mp4","videos/bad2.mp4"  */];
 
-  // Unified pools (no prefilter; lazy-load with onerror fallback)
   const GOOD_POOL = GOOD_IMAGES.concat(GOOD_VIDEOS);
   const BAD_POOL  = BAD_IMAGES .concat(BAD_VIDEOS);
 
@@ -300,7 +296,7 @@
   let p1={ok:0,no:0,played:0}, p2={ok:0,no:0,played:0};
   let tick=null, remaining=0, turn='p1', awaitingTurnStart=false;
 
-  // NEW: overlay wait guard + streaks
+  // overlay guard + streaks
   let awaitingOverlay=false;
   let streakSolo=0, streakP1=0, streakP2=0;
 
@@ -393,7 +389,6 @@
     }catch(e){ return 2500; }
   }
 
-  // Non-repeating random picker per overlay
   function pickIndexAvoidRepeat(len, last){
     if (len<=1) return 0;
     let idx = Math.floor(Math.random()*len);
@@ -401,7 +396,6 @@
     return idx;
   }
 
-  // schedule hide (with completion callback)
   function scheduleHide(el, ms, onDone){
     if (el._hideTimer) clearTimeout(el._hideTimer);
     el._hideTimer = setTimeout(()=>{
@@ -411,7 +405,6 @@
     }, ms);
   }
 
-  // Unified flash -> Promise resolves when overlay fully finishes
   function flashAsync(el, pool, hold){
     hold = hold || 600;
     return new Promise(resolve=>{
@@ -419,7 +412,6 @@
       const imgEl  = isGood ? fxGoodImg : fxBadImg;
       const vidEl  = isGood ? fxGoodVid : fxBadVid;
 
-      // stop prior video
       try{ vidEl.pause(); }catch(e){}
       vidEl.removeAttribute('src');
       vidEl.load?.();
@@ -433,7 +425,6 @@
       el.classList.add('show');
       imgEl.onerror = null;
 
-      // VIDEO
       if (isVideo(pick)){
         imgEl.style.display='none';
         vidEl.style.display='block';
@@ -450,7 +441,7 @@
         vidEl.addEventListener('ended', onEnded);
         vidEl.onloadedmetadata = ()=>{
           const ms = Math.max(hold, ((vidEl.duration||0)*1000|0)+150);
-          vidEl._fallbackTimer = setTimeout(()=>{ onEnded(); }, ms+50); // safety
+          vidEl._fallbackTimer = setTimeout(()=>{ onEnded(); }, ms+50);
         };
         vidEl.src = pick;
         vidEl.play().catch(()=>{
@@ -459,7 +450,7 @@
         return;
       }
 
-      // IMAGES / GIFs
+      // images/gifs
       vidEl.style.display='none';
       imgEl.style.display='block';
 
@@ -468,9 +459,8 @@
         el._errAttempts = attempts;
         if (attempts<3){
           el[lastKey] = -1;
-          // try again with new pick
-          resolve(); // finish this attempt quickly; caller will continue to next question only after we re-trigger flashAsync externally if needed
           el.classList.remove('show');
+          resolve();
         }else{
           imgEl.src = BLANK_IMG;
           scheduleHide(el, STILL_MIN_MS, ()=>{ el._errAttempts=0; resolve(); });
@@ -497,7 +487,7 @@
     });
   }
 
-  // ===== Math game =====
+  // ===== Game helpers =====
   function clamp(n,a,b){return Math.min(Math.max(n,a),b);}
   function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
   function pickOp(m){return m!=='mix'?m:['add','sub','mul','div'][rnd(0,3)];}
@@ -508,10 +498,6 @@
     if(op==='mul') return {min:0,max:mul};
     if(op==='div') return {min:1,max:mul};
     return {min:0,max:add};
-  }
-  function accuracy(){
-    const t = good + bad;
-    return t ? Math.round((good / t) * 100) : '—';
   }
   const ops={
     add:{gen:L=>{const r=rangeFor('add',L),a=rnd(r.min,r.max),b=rnd(r.min,r.max);return {text:a+" + "+b,answer:a+b};}},
@@ -526,13 +512,18 @@
   function renderStreak(){ elStreak.textContent = String(currentStreak()); }
 
   function updateTurnBanner(){ elTurn.textContent = elPlayers.value==='2' ? ('Turn: '+activeName()) : '—'; }
+
   function setRowVis(){
-    const p1Active = (turn==='p1');
-    rowP1.classList.toggle('hidden',!p1Active);
-    rowP2.classList.toggle('hidden', p1Active);
-    elP1.disabled=!p1Active; elP2.disabled=p1Active;
-    (p1Active?elP1:elP2).focus();
+    const two = elPlayers.value==="2";
+    if(two){
+      const p1Active = (turn==='p1');
+      rowP1.classList.toggle('hidden',!p1Active);
+      rowP2.classList.toggle('hidden', p1Active);
+      elP1.disabled=!p1Active; elP2.disabled=p1Active;
+      (p1Active?elP1:elP2).focus();
+    }
   }
+
   function uiMode(){
     const two = elPlayers.value==="2";
     elSingle.style.display = two ? 'none':'grid';
@@ -545,6 +536,16 @@
     updateTurnBanner();
     renderStreak();
     if(two) setRowVis();
+  }
+
+  // freeze/unfreeze inputs to avoid stuck-disabled state
+  function freezeInputs(){ elAns1.disabled=true; elP1.disabled=true; elP2.disabled=true; }
+  function unfreezeInputs(){
+    if(elPlayers.value==='1'){
+      elAns1.disabled=false; elAns1.focus();
+    }else{
+      setRowVis(); // sets proper enabled field and focuses it
+    }
   }
 
   elPlayers.addEventListener('change', function(){
@@ -600,6 +601,7 @@
     }
     uiMode();
   }
+
   function reset(){
     stopTimer(); running=false; current=null; qCount=good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     streakSolo=streakP1=streakP2=0; renderStreak();
@@ -636,6 +638,10 @@
     [elAns1,elP1,elP2].forEach(i=>{i.value='';});
     elFeedback.textContent=' '; elFeedback.className='feedback';
     renderStreak();
+
+    // ensure correct input enabled for this state
+    unfreezeInputs();
+
     startTimerIfNeeded();
   }
 
@@ -671,22 +677,16 @@
   window.addEventListener('keydown', e=>{ if(e.key==='Escape') hideFinal(); });
 
   function consumeRound(){ if(elPlayers.value==='2'){ (turn==='p1'?p1:p2).played++; } }
-
   function leadText(){ const d=p1.ok-p2.ok; return d===0?'Tied':(d>0?(NAME_P1)+' +'+d:(NAME_P2)+' +'+(-d)); }
-
-  function disableAllInputs(disabled){
-    [elAns1,elP1,elP2].forEach(i=>i.disabled = disabled ? true : i.disabled);
-    if(disabled){ /* nothing else */ }
-  }
 
   async function afterOverlayThenNext(promise){
     try{
       awaitingOverlay=true;
-      disableAllInputs(true);
+      freezeInputs();
       await promise;
     }finally{
       awaitingOverlay=false;
-      disableAllInputs(false);
+      unfreezeInputs();
       next();
     }
   }
@@ -710,8 +710,8 @@
       elFeedback.textContent = (who==='solo' ? 'Correct!' : (activeName() + ' scores!'));
       elFeedback.className = 'feedback ok';
       sfx.correct();
-
       consumeRound();
+
       await afterOverlayThenNext(flashAsync(fxGood, GOOD_POOL, 400));
       return;
     }
@@ -725,8 +725,8 @@
     elFeedback.textContent = '✗ Wrong';
     elFeedback.className = 'feedback no';
     sfx.wrong();
-
     consumeRound();
+
     await afterOverlayThenNext(flashAsync(fxBad, BAD_POOL, 450));
   }
 
