@@ -1,10 +1,9 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Math Sprint — Head-to-Head (Stabilized)</title>
+<title>Math Sprint — Head-to-Head</title>
 <style>
   :root{--bg:#0f1220;--panel:#161a2e;--ink:#e9ecf1;--muted:#aab3c5;--good:#38d39f;--bad:#ff6b6b;--warn:#ffb020;--chip:#232843}
   *{box-sizing:border-box} html,body{height:100%}
@@ -14,7 +13,7 @@
   header{display:grid;gap:12px;grid-template-columns:1fr auto;align-items:start;margin-bottom:16px}
   h1{font-weight:800;margin:0;letter-spacing:.2px;font-size:clamp(20px,2.8vw,28px)}
 
-  .controls{display:grid;gap:10px;padding:14px;background:rgba(0,0,0,.2);border:1px solid #262b4a;border-radius:14px;grid-template-columns:repeat(8,minmax(0,1fr));align-items:end}
+  .controls{display:grid;gap:10px;padding:14px;background:color-mix(in oklab,var(--panel),#000 6%);border:1px solid #262b4a;border-radius:14px;grid-template-columns:repeat(8,minmax(0,1fr));align-items:end}
   .group{display:grid;gap:6px} label{font-size:12px;color:var(--muted);letter-spacing:.2px}
   select,input[type="range"],input[type="text"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2c335a;background:#0e1330;color:var(--ink);outline:none}
   .range-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
@@ -27,7 +26,7 @@
   .grid {display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: stretch; }
   .card{background:var(--panel);border:1px solid #262b4a;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
   .problem{position:relative;display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
-  .formula { font-size:64px;font-weight:800;letter-spacing:1px;margin-top:40px;margin-left:40px; }
+ .formula { font-size:64px;font-weight:800;letter-spacing:1px;margin-top:40px;margin-left:40px; }
 
   .timer-mini{position:absolute;top:12px;left:12px;width:88px;height:88px;display:grid;place-items:center;background:#0e1330;border:1px solid #2b3155;border-radius:12px;font-weight:800;letter-spacing:.5px;font-size:20px;box-shadow:0 6px 20px rgba(0,0,0,.35);}
 
@@ -139,7 +138,7 @@
 
       <div class="group">
         <label>&nbsp;</label>
-        <span class="chip">Start turn: Space/Enter • Submit: Enter • Skip: S • Panic-next: N</span>
+        <span class="chip">Start turn: Space/Enter • Submit: Enter • Skip: S</span>
       </div>
     </section>
 
@@ -180,7 +179,7 @@
           <div class="stat"><label>Lead</label><b id="lead">—</b></div>
         </div>
 
-        <footer>Shortcuts: Start turn (Space/Enter) • Submit (Enter) • Esc clear • S skip • N panic-next</footer>
+        <footer>Shortcuts: Start turn (Space/Enter) • Submit (Enter) • Esc clear • S skip</footer>
       </div>
 
       <div class="card">
@@ -229,57 +228,300 @@
   <audio id="sndHead"    src="sounds/head2head.mp3" preload="auto"></audio>
 
 <script>
-'use strict';
-document.addEventListener('DOMContentLoaded', () => {
 (function(){
-  const SAFE_OVERLAYS = true;          // set false to disable popups entirely
-  const HARD_OVERLAY_MS = 5000;        // absolute cap to avoid hangs
-  const NAME_P1='Aliah', NAME_P2='Aliana';
-  const $=s=>document.querySelector(s);
+  // ===== Constants =====
+  const NAME_P1 = 'Aliah';
+  const NAME_P2 = 'Aliana';
+  const STILL_MIN_MS = 1600;
 
-  // --- DOM
+  // Music
+  const MUSIC_TRACKS = [
+    "Confused and Angry Robots.mp3",
+    "Delightful Stroll.mp3",
+    "Forest Theme - D Minor - Jordan Ottesen.mp3",
+    "Rainbow Lollipop.mp3",
+    "Space Knights.mp3",
+    "Water Theme - G Major - Jordan Ottesen.mp3"
+  ];
+
+  // ===== DOM =====
+  const $=s=>document.querySelector(s);
   const elMode=$('#mode'), elDiff=$('#difficulty'), elDiffVal=$('#diffVal');
   const elTimerSec=$('#timerSec'), elTimerVal=$('#timerVal');
   const elRounds=$('#rounds'), elPlayers=$('#players');
+
   const elMusicOn=$('#musicOn'), elMusicVol=$('#musicVol'), BGM=$('#bgm');
-  const elSoundOn=$('#soundOn'), elVol=$('#volume');
-  const SND_OK=$('#sndCorrect'), SND_NO=$('#sndWrong'), SND_FINISH=$('#sndFinish');
-  const SND_START=$('#sndStart'), SND_SINGLE=$('#sndSingle'), SND_HEAD=$('#sndHead');
+  const elSoundOn=$('#soundOn'), elVol=$('#volume'),
+        SND_OK=$('#sndCorrect'), SND_NO=$('#sndWrong'), SND_FINISH=$('#sndFinish'),
+        SND_START=$('#sndStart'), SND_SINGLE=$('#sndSingle'), SND_HEAD=$('#sndHead');
+
   const elStart=$('#btnStart'), elReset=$('#btnReset');
   const elSingle=$('#singleRows'), elMulti=$('#multiRows');
   const elAns1=$('#answer1'), elBtn1=$('#btnSubmit1');
   const elP1=$('#answerP1'), elP2=$('#answerP2');
   const elBtnP1=$('#btnSubmitP1'), elBtnP2=$('#btnSubmitP2');
   const rowP1=$('#rowP1'), rowP2=$('#rowP2');
+
   const elFormula=$('#formula'), elFeedback=$('#feedback');
   const elQIndex=$('#qIndex'), elTimer=$('#timerMini');
   const elVersus=$('#versus'), elP1Score=$('#p1Score'), elP2Score=$('#p2Score'), elLead=$('#lead');
   const elLblP1=$('#lblP1'), elLblP2=$('#lblP2'), elTurn=$('#turnBanner');
-  const elStreak=$('#streak');
-  const fxGood=$('#fxGood'), fxBad=$('#fxBad'), fxGoodImg=$('#fxGoodImg'), fxBadImg=$('#fxBadImg'), fxGoodVid=$('#fxGoodVid'), fxBadVid=$('#fxBadVid');
-  const overlay=$('#turnOverlay'), overlayText=$('#turnText'), overlayAvatar=$('#turnAvatar'), btnBeginTurn=$('#btnBeginTurn');
-  const finalOv=$('#finalOverlay'), finalScore=$('#finalScore'), finalClose=$('#finalClose');
 
-  // --- State
-  const GOOD_POOL=["images/Correct1.webp","images/Correct2.webp","images/Correct4.png"];
-  const BAD_POOL =["images/Wrong1.png","images/Wrong2.png","images/Wrong3.png"];
+  const elStreak=$('#streak');
+
+  const fxGood=$('#fxGood'), fxBad=$('#fxBad'),
+        fxGoodImg=$('#fxGoodImg'), fxBadImg=$('#fxBadImg'),
+        fxGoodVid=$('#fxGoodVid'), fxBadVid=$('#fxBadVid');
+
+  const overlay=$('#turnOverlay'), overlayText=$('#turnText'), overlayAvatar=$('#turnAvatar'), btnBeginTurn=$('#btnBeginTurn');
+
+  const finalOv = $('#finalOverlay'), finalScore = $('#finalScore'), finalClose = $('#finalClose');
+
+  // ===== State =====
+  // FIX: removed stray undefined entry caused by double comma
+  const GOOD_IMAGES=[
+    "images/Correct1.webp","images/Correct2.webp","images/Correct4.png","images/Correct5.png","images/Correct6.png",
+    "images/Correct7.png","images/Correct8.png","images/Correct9.png","images/Correct10.png",
+    "images/KpopRight1.mp4","images/KpopRight3.mp4","images/KpopRight4.mp4","images/KpopRight5.mp4","images/KpopRight6.mp4","images/KpopRight8.mp4"
+  ];
+  const BAD_IMAGES =[
+    "images/Wrong1.png","images/Wrong2.png","images/Wrong3.png","images/Wrong4.jpg","images/Wrong5.webp","images/Wrong6.png","images/Wrong7.png",
+    "images/KpopWrong1.mp4","images/KpopWrong2.mp4","images/KpopWrong3.mp4","images/KpopWrong4.mp4"
+  ];
+  const GOOD_VIDEOS=[/* optional video files */];
+  const BAD_VIDEOS =[/* optional video files */];
+
+  const GOOD_POOL = GOOD_IMAGES.concat(GOOD_VIDEOS);
+  const BAD_POOL  = BAD_IMAGES .concat(BAD_VIDEOS);
+
   let running=false, current=null, qCount=0;
   let good=0,bad=0;
   let p1={ok:0,no:0,played:0}, p2={ok:0,no:0,played:0};
-  let tick=null, remaining=0, turn='p1', awaitingTurnStart=false, awaitingOverlay=false;
+  let tick=null, remaining=0, turn='p1', awaitingTurnStart=false;
+
+  // overlay guard + streaks + submit guard
+  let awaitingOverlay=false;
   let streakSolo=0, streakP1=0, streakP2=0;
 
-  // --- Audio
+  const P1_IMG="players/p1.png";
+  const P2_IMG="players/p2.png";
+
+  // ===== Music =====
+  function setRandomBgm(){
+    if (!MUSIC_TRACKS.length) return;
+    const pick = MUSIC_TRACKS[Math.floor(Math.random()*MUSIC_TRACKS.length)];
+    BGM.src = "sounds/" + pick;
+  }
+  function attemptAutoplay(){
+    BGM.volume = +elMusicVol.value;
+    BGM.play().catch(() => {
+      const resume = () => {
+        if (AC && AC.state === 'suspended') AC.resume();
+        BGM.play().catch(()=>{});
+        document.removeEventListener('pointerdown', resume);
+        document.removeEventListener('keydown', resume);
+      };
+      document.addEventListener('pointerdown', resume, { once:true });
+      document.addEventListener('keydown',   resume, { once:true });
+    });
+  }
+  function updateMusic(){
+    BGM.volume=+elMusicVol.value;
+    if(elMusicOn.value==="1"){ BGM.play().catch(()=>{}); }
+    else{ BGM.pause(); }
+  }
+  elMusicOn.addEventListener('change',updateMusic);
+  elMusicVol.addEventListener('input',updateMusic);
+
+  // ===== Sound FX =====
   const AC=(window.AudioContext||window.webkitAudioContext)? new (window.AudioContext||window.webkitAudioContext)() : null;
   const master=AC? AC.createGain():null; if(master){ master.connect(AC.destination); master.gain.value=+elVol.value; }
-  const soundOn = ()=> elSoundOn.value==="1";
-  const playAudio = (el)=>{ if(!soundOn()||!el) return; try{ el.currentTime=0; el.volume=+elVol.value; el.play(); }catch(e){} };
+  function soundOn(){ return elSoundOn.value==="1"; }
   elVol.addEventListener('input',()=>{ if(master) master.gain.value=+elVol.value; });
+  function tone(freq,dur,type,when,vol){
+    if(!soundOn() || !AC) return;
+    dur = dur||0.12; type=type||'sine'; when=when||0; vol=vol||0.2;
+    const o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.value=freq; o.connect(g); g.connect(master);
+    const t=AC.currentTime+when; o.start(t);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(vol,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.stop(t+dur+0.02);
+  }
+  function playAudio(el){
+    if(!soundOn() || !el) return;
+    try{ el.currentTime=0; el.volume=+elVol.value; el.play(); }catch(e){}
+  }
+  const sfx={
+    correct:()=>playAudio(SND_OK),
+    wrong:()=>playAudio(SND_NO),
+    tick:()=>tone(900,0.03,'square',0,0.12),
+    timeout:()=>[523,392,330].forEach((f,i)=>tone(f,0.12,'sine',i*0.09,0.22))
+  };
 
-  // --- Utils
-  const clamp=(n,a,b)=>Math.min(Math.max(n,a),b);
-  const rnd=(min,max)=>Math.floor(Math.random()*(max-min+1))+min;
-  const pickOp=m=>m!=='mix'?m:['add','sub','mul','div'][rnd(0,3)];
+  // ===== Ducking (mute music + fx during MP4) =====
+  const DUCK_MS = 0.08; // seconds for quick ramp
+  let duckDepth = 0;
+  function beginDucking(){
+    duckDepth++;
+    try{ BGM.muted = true; }catch(e){}
+    if(master && AC){
+      const now = AC.currentTime;
+      master.gain.cancelScheduledValues(now);
+      master.gain.setTargetAtTime(0.0001, now, DUCK_MS);
+    }
+  }
+  function endDucking(){
+    duckDepth = Math.max(0, duckDepth-1);
+    if(duckDepth>0) return;
+    try{ BGM.muted = false; BGM.volume = +elMusicVol.value; }catch(e){}
+    if(master && AC){
+      const now = AC.currentTime;
+      master.gain.cancelScheduledValues(now);
+      master.gain.setTargetAtTime(+elVol.value || 0, now, DUCK_MS);
+    }
+  }
+
+  // ===== Media helpers =====
+  const BLANK_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
+  const isGif   = src => /\.gif(?:$|\?)/i.test(src);
+  const isVideo = src => /\.(mp4)(?:$|\?)/i.test(src);
+
+  function gifHoldFromName(src){
+    let m = src && src.match ? src.match(/[?&]dur=(\d+)/i) : null;
+    if (m) return +m[1];
+    m = src && src.match ? src.match(/@(\d+(?:\.\d+)?)(ms|s)\.gif(?:$|\?)/i) : null;
+    if (m) return m[2].toLowerCase()==='s' ? Math.round(+m[1]*1000) : Math.round(+m[1]);
+    return null;
+  }
+  async function computeGifDurationMs(url){
+    try{
+      const res = await fetch(url, {cache:'force-cache'});
+      const buf = await res.arrayBuffer();
+      const dv = new DataView(buf);
+      const len = dv.byteLength;
+      let totalCs = 0;
+      for (let i=0; i < len - 9; i++){
+        if (dv.getUint8(i)===0x21 && dv.getUint8(i+1)===0xF9 && dv.getUint8(i+2)===0x04){
+          let delayCs = dv.getUint16(i+4, true);
+          if (delayCs < 3) delayCs = 10;
+          totalCs += delayCs;
+          i += 7;
+        }
+      }
+      if (totalCs === 0) return 2500;
+      return totalCs * 10;
+    }catch(e){ return 2500; }
+  }
+
+  function pickIndexAvoidRepeat(len, last){
+    if (len<=1) return 0;
+    let idx = Math.floor(Math.random()*len);
+    if (idx===last) idx = (idx+1) % len;
+    return idx;
+  }
+
+  function scheduleHide(el, ms, onDone){
+    if (el._hideTimer) clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(()=>{
+      el.classList.remove('show');
+      el._hideTimer=null;
+      if (typeof onDone === 'function') onDone();
+    }, ms);
+  }
+
+  function flashAsync(el, pool, hold){
+    hold = hold || 600;
+    return new Promise(resolve=>{
+      const isGood = (el === fxGood);
+      const imgEl  = isGood ? fxGoodImg : fxBadImg;
+      const vidEl  = isGood ? fxGoodVid : fxBadVid;
+
+      try{ vidEl.pause(); }catch(e){}
+      vidEl.removeAttribute('src');
+      vidEl.load?.();
+
+      const lastKey = isGood ? '_lastGood' : '_lastBad';
+      const poolArr = (pool && pool.length) ? pool.filter(Boolean) : [BLANK_IMG];
+      const idx = pickIndexAvoidRepeat(poolArr.length, el[lastKey] ?? -1);
+      el[lastKey] = idx;
+      const pick = poolArr[idx];
+
+      el.classList.add('show');
+      imgEl.onerror = null;
+
+      if (isVideo(pick)){
+        imgEl.style.display='none';
+        vidEl.style.display='block';
+        vidEl.volume = 1;
+
+        const onEnded = ()=>{
+          cleanup();
+          endDucking();
+          el.classList.remove('show');
+          resolve();
+        };
+        const cleanup = ()=>{
+          vidEl.removeEventListener('ended', onEnded);
+          if (vidEl._fallbackTimer){ clearTimeout(vidEl._fallbackTimer); vidEl._fallbackTimer=null; }
+        };
+
+        beginDucking();
+        vidEl.addEventListener('ended', onEnded);
+        vidEl.onloadedmetadata = ()=>{
+          const ms = Math.max(hold, ((vidEl.duration||0)*1000|0)+150);
+          vidEl._fallbackTimer = setTimeout(()=>{ onEnded(); }, ms+50);
+        };
+        vidEl.src = pick;
+
+        vidEl.play().catch(()=>{
+          scheduleHide(el, Math.max(hold, 4000), ()=>{ endDucking(); resolve(); });
+        });
+        return;
+      }
+
+      // images/gifs
+      vidEl.style.display='none';
+      imgEl.style.display='block';
+
+      imgEl.onerror = ()=>{
+        let attempts = (el._errAttempts||0)+1;
+        el._errAttempts = attempts;
+        if (attempts<3){
+          el[lastKey] = -1;
+          el.classList.remove('show');
+          resolve();
+        }else{
+          imgEl.src = BLANK_IMG;
+          scheduleHide(el, STILL_MIN_MS, ()=>{ el._errAttempts=0; resolve(); });
+        }
+      };
+      imgEl.onload = ()=>{ el._errAttempts=0; };
+      imgEl.src = pick || BLANK_IMG;
+
+      if (!isGif(pick)) {
+        scheduleHide(el, Math.max(hold, STILL_MIN_MS), resolve);
+        return;
+      }
+
+      const override = gifHoldFromName(pick);
+      if (override != null){
+        scheduleHide(el, Math.max(hold, override), resolve);
+        return;
+      }
+      computeGifDurationMs(pick).then(ms=>{
+        scheduleHide(el, Math.max(hold, (ms||2500)+150), resolve);
+      }).catch(()=>{
+        scheduleHide(el, Math.max(hold, 2500), resolve);
+      });
+    });
+  }
+
+  // ===== Game helpers =====
+  function clamp(n,a,b){return Math.min(Math.max(n,a),b);}
+  function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+  function pickOp(m){return m!=='mix'?m:['add','sub','mul','div'][rnd(0,3)];}
   function rangeFor(op,L){
     L=clamp(+L,1,10);
     const add=[9,12,20,30,40,60,90,120,180,250][L-1];
@@ -295,11 +537,12 @@ document.addEventListener('DOMContentLoaded', () => {
     div:{gen:L=>{const r=rangeFor('div',L),b=rnd(r.min,r.max),q=rnd(r.min,r.max),a=b*q;return {text:a+" ÷ "+b,answer:q};}}
   };
 
-  // --- UI helpers
-  const currentStreak = ()=> elPlayers.value==='2' ? (turn==='p1'?streakP1:streakP2) : streakSolo;
-  const setCurrentStreak = v => { if(elPlayers.value==='2'){ if(turn==='p1') streakP1=v; else streakP2=v; } else { streakSolo=v; } };
-  const renderStreak = ()=> elStreak.textContent = String(currentStreak());
-  const updateTurnBanner = ()=> elTurn.textContent = elPlayers.value==='2' ? ('Turn: '+(turn==='p1'?NAME_P1:NAME_P2)) : '—';
+  function activeName(){ return turn==='p1' ? NAME_P1 : NAME_P2; }
+  function currentStreak(){ return elPlayers.value==='2' ? (turn==='p1'?streakP1:streakP2) : streakSolo; }
+  function setCurrentStreak(v){ if(elPlayers.value==='2'){ if(turn==='p1') streakP1=v; else streakP2=v; } else { streakSolo=v; } }
+  function renderStreak(){ elStreak.textContent = String(currentStreak()); }
+
+  function updateTurnBanner(){ elTurn.textContent = elPlayers.value==='2' ? ('Turn: '+activeName()) : '—'; }
 
   function setRowVis(){
     const two = elPlayers.value==="2";
@@ -311,6 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
       (p1Active?elP1:elP2).focus();
     }
   }
+
   function uiMode(){
     const two = elPlayers.value==="2";
     elSingle.style.display = two ? 'none':'grid';
@@ -320,75 +564,53 @@ document.addEventListener('DOMContentLoaded', () => {
     elLblP2.textContent= NAME_P2+' ✓ / ✗';
     $('#answerP1').placeholder = NAME_P1;
     $('#answerP2').placeholder = NAME_P2;
-    updateTurnBanner(); renderStreak(); if(two) setRowVis();
+    updateTurnBanner();
+    renderStreak();
+    if(two) setRowVis();
   }
 
-  const freezeInputs = ()=>{ elAns1.disabled=true; elP1.disabled=true; elP2.disabled=true; };
+  // freeze/unfreeze inputs to avoid stuck-disabled state
+  function freezeInputs(){ elAns1.disabled=true; elP1.disabled=true; elP2.disabled=true; }
   function unfreezeInputs(){
-    if (awaitingOverlay || awaitingTurnStart) return;
-    if(elPlayers.value==='1'){ elAns1.disabled=false; elAns1.focus(); }
-    else { setRowVis(); }
+    if(elPlayers.value==='1'){
+      elAns1.disabled=false; elAns1.focus();
+    }else{
+      setRowVis(); // sets proper enabled field and focuses it
+    }
   }
+
+  elPlayers.addEventListener('change', function(){
+    if (elPlayers.value === "1") playAudio(SND_SINGLE);
+    else if (elPlayers.value === "2") playAudio(SND_HEAD);
+    uiMode();
+  });
 
   function showTurnOverlay(){
     if(elPlayers.value!=='2') return;
-    overlayText.textContent = 'Next up: ' + (turn==='p1'?NAME_P1:NAME_P2);
-    overlayAvatar.src = (turn==='p1')? 'players/p1.png' : 'players/p2.png';
-    overlay.classList.add('show'); awaitingTurnStart = true; renderStreak(); freezeInputs();
+    overlayText.textContent = 'Next up: ' + activeName();
+    overlayAvatar.src = (turn==='p1')? P1_IMG : P2_IMG;
+    overlayAvatar.onerror = ()=>{ overlayAvatar.style.display='none'; };
+    overlayAvatar.onload  = ()=>{ overlayAvatar.style.display='block'; };
+    overlay.classList.add('show');
+    awaitingTurnStart = true;
+    renderStreak();
   }
-  function hideTurnOverlay(){ overlay.classList.remove('show'); awaitingTurnStart=false; unfreezeInputs(); }
+  function hideTurnOverlay(){ overlay.classList.remove('show'); awaitingTurnStart=false; }
 
-  // --- Overlays (hardened, no videos to avoid stalls)
-  const BLANK_IMG="data:image/gif;base64,R0lGODlhAQABAAAAACw=";
-  function flashAsync(el, pool, hold=600){
-    if(!SAFE_OVERLAYS){ return Promise.resolve(); }
-    return new Promise(res=>{
-      const img = (el===fxGood)? fxGoodImg : fxBadImg;
-      const vid = (el===fxGood)? fxGoodVid : fxBadVid;
-      // disable videos for stability
-      vid.removeAttribute('src'); vid.style.display='none';
-      img.style.display='block';
-      const pick = (pool && pool.length)? pool[(Math.random()*pool.length)|0] : BLANK_IMG;
-      el.classList.add('show');
-      let done=false;
-      const end=()=>{ if(done) return; done=true; el.classList.remove('show'); res(); };
-      const t=setTimeout(end, Math.max(hold, HARD_OVERLAY_MS));
-      img.onload = ()=>{ setTimeout(end, Math.max(hold, 800)); };
-      img.onerror= ()=>{ end(); };
-      img.src = pick || BLANK_IMG;
-      // hard click-through to dismiss if needed
-      el.addEventListener('click', end, {once:true});
-    });
-  }
+  btnBeginTurn.addEventListener('click', function(){
+    hideTurnOverlay();
+    setRandomBgm();
+    attemptAutoplay();
+    qCount = 0; elQIndex.textContent = '0';
+    setRowVis();
+    next(true);
+  });
+  window.addEventListener('keydown', function(e){
+    if(awaitingTurnStart && (e.key===' ' || e.key==='Enter')){ e.preventDefault(); btnBeginTurn.click(); }
+  });
 
-  // --- Timer
-  function startTimerIfNeeded(){
-    const sec=+elTimerSec.value;
-    if(!sec){ elTimer.textContent='Timer: off'; elTimer.style.color='var(--ink)'; return; }
-    remaining=sec; renderTimer(); stopTimer();
-    tick=setInterval(()=>{
-      remaining--;
-      if(remaining>0){ renderTimer(); return; }
-      stopTimer();
-      if (!current || current._done) { renderTimer(); return; }
-      current._done = true;
-      bad++; setCurrentStreak(0); renderStreak();
-      elFeedback.textContent='Time out — next!'; elFeedback.className='feedback no';
-      consumeRound();
-      afterOverlayThenNext(flashAsync(fxBad,BAD_POOL,600));
-    },1000);
-  }
-  function stopTimer(){ if(tick){ clearInterval(tick); tick=null; } }
-  function renderTimer(){
-    const warn=remaining<=Math.max(3,Math.floor(+elTimerSec.value*0.25));
-    elTimer.textContent='⏱ '+remaining+'s'; elTimer.style.color=warn?'var(--warn)':'var(--ink)';
-  }
-
-  // --- Flow
   function everyonePlayed(){ const r=parseInt(elRounds.value,10); return (p1.played>=r && p2.played>=r); }
   function sessionFinishedFor(id){ const r=parseInt(elRounds.value,10); return (id==='p1'?p1:p2).played>=r; }
-  function consumeRound(){ if(elPlayers.value==='2'){ (turn==='p1'?p1:p2).played++; } }
-  function leadText(){ const d=p1.ok-p2.ok; return d===0?'Tied':(d>0?(NAME_P1)+' +'+d:(NAME_P2)+' +'+(-d)); }
 
   function start(){
     if(running) return;
@@ -396,11 +618,14 @@ document.addEventListener('DOMContentLoaded', () => {
     running=true; qCount=0; good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     streakSolo=streakP1=streakP2=0; renderStreak();
     elStart.textContent='Running…'; elStart.disabled=true;
+
     playAudio(SND_START);
+    setRandomBgm(); attemptAutoplay();
 
     if(elPlayers.value==="2"){
       turn = (Math.random()<0.5)?'p1':'p2';
-      updateTurnBanner(); qCount = 0; elQIndex.textContent = '0';
+      updateTurnBanner();
+      qCount = 0; elQIndex.textContent = '0';
       showTurnOverlay();
     }else{
       elAns1.disabled=false; next(true); elAns1.focus();
@@ -415,9 +640,8 @@ document.addEventListener('DOMContentLoaded', () => {
     [elAns1,elP1,elP2].forEach(i=>{i.value=''; i.disabled=true;});
     elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
     elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
-    elQIndex.textContent='0'; overlay.classList.remove('show'); awaitingTurnStart=false;
-    finalOv.classList.remove('show'); finalOv.setAttribute('aria-hidden','true');
-    fxGood.classList.remove('show'); fxBad.classList.remove('show');
+    elQIndex.textContent='0';
+    overlay.classList.remove('show'); awaitingTurnStart=false;
   }
 
   function next(initial){
@@ -440,21 +664,27 @@ document.addEventListener('DOMContentLoaded', () => {
     qCount++;
     const mode=pickOp(elMode.value), L=+elDiff.value;
     current=ops[mode].gen(L);
-    current._done=false;
+    current._done=false; // guard
     elFormula.textContent = current.text;
     elQIndex.textContent=qCount;
     [elAns1,elP1,elP2].forEach(i=>{i.value='';});
     elFeedback.textContent=' '; elFeedback.className='feedback';
     renderStreak();
+
+    // ensure correct input enabled for this state
     unfreezeInputs();
+
     startTimerIfNeeded();
   }
 
   function finish(){
+    if (SND_FINISH) { try { SND_FINISH.currentTime = 0; SND_FINISH.play(); } catch(e){} }
     stopTimer(); running=false; elStart.textContent='Start ▶'; elStart.disabled=false;
+
     let scoreLine = '';
     if(elPlayers.value==='2'){
-      const p1Score=p1.ok, p2Score=p2.ok; const n1=NAME_P1, n2=NAME_P2;
+      const p1Score=p1.ok, p2Score=p2.ok;
+      const n1=NAME_P1, n2=NAME_P2;
       let winner;
       if(p1Score>p2Score) winner = n1 + ' wins!';
       else if(p2Score>p1Score) winner = n2 + ' wins!';
@@ -469,102 +699,145 @@ document.addEventListener('DOMContentLoaded', () => {
       const acc = t ? Math.round((good / t) * 100) : '—';
       scoreLine = good+' correct, '+bad+' wrong, accuracy '+(acc==='—'?'—':acc+'%');
     }
-    finalScore.textContent=scoreLine; finalOv.classList.add('show'); finalOv.setAttribute('aria-hidden','false');
-    freezeInputs();
+    elFeedback.textContent=' '; elFeedback.className='feedback'; showFinal(scoreLine);
   }
 
-  async function afterOverlayThenNext(p){
+  function showFinal(text){ finalScore.textContent=text; finalOv.classList.add('show'); finalOv.setAttribute('aria-hidden','false'); }
+  function hideFinal(){ finalOv.classList.remove('show'); finalOv.setAttribute('aria-hidden','true'); }
+  finalClose.addEventListener('click', hideFinal);
+  finalOv.addEventListener('click', e=>{ if(e.target===finalOv) hideFinal(); });
+  window.addEventListener('keydown', e=>{ if(e.key==='Escape') hideFinal(); });
+
+  function consumeRound(){ if(elPlayers.value==='2'){ (turn==='p1'?p1:p2).played++; } }
+  function leadText(){ const d=p1.ok-p2.ok; return d===0?'Tied':(d>0?(NAME_P1)+' +'+d:(NAME_P2)+' +'+(-d)); }
+
+  async function afterOverlayThenNext(promise){
     try{
-      awaitingOverlay=true; freezeInputs();
-      const timed = Promise.race([p, new Promise(r=>setTimeout(r,HARD_OVERLAY_MS))]);
-      await timed;
+      awaitingOverlay=true;
+      freezeInputs();
+      await promise;
     }finally{
-      awaitingOverlay=false; unfreezeInputs(); next();
+      awaitingOverlay=false;
+      unfreezeInputs();
+      next();
     }
   }
 
   async function handleSubmit(val, who){
-    if(awaitingTurnStart || !running || !current) return;
+    if(awaitingTurnStart) return;
+    if(!running || !current || val==='') return;
+
+    // FIX: hard guard to stop rapid double-submits on the same question
     if (awaitingOverlay || current._done) return;
-    const trimmed = (val||'').trim();
-    if (trimmed==='') return;
+    current._done = true;              // mark consumed immediately
+    freezeInputs();                    // freeze instantly to block extra Enter
+    stopTimer();
 
-    current._done = true; freezeInputs(); stopTimer();
-
-    const num = Number(trimmed);
+    const num = Number(val);
     const correct = (num === current.answer);
 
     if (correct) {
-      good++; setCurrentStreak(currentStreak()+1); renderStreak();
+      good++;
+      setCurrentStreak(currentStreak()+1); renderStreak();
+
       if (who === 'p1'){ p1.ok++; elP1Score.textContent = p1.ok + ' / ' + p1.no; elLead.textContent = leadText(); }
       if (who === 'p2'){ p2.ok++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
-      elFeedback.textContent = (who==='solo' ? 'Correct!' : 'Score!'); elFeedback.className = 'feedback ok';
-      playAudio(SND_OK); consumeRound();
+      elFeedback.textContent = (who==='solo' ? 'Correct!' : (activeName() + ' scores!'));
+      elFeedback.className = 'feedback ok';
+      sfx.correct();
+      consumeRound();
+
       await afterOverlayThenNext(flashAsync(fxGood, GOOD_POOL, 400));
       return;
     }
 
-    bad++; setCurrentStreak(0); renderStreak();
+    // wrong
+    bad++;
+    setCurrentStreak(0); renderStreak();
+
     if (who === 'p1'){ p1.no++; elP1Score.textContent = p1.ok + ' / ' + p1.no; elLead.textContent = leadText(); }
     if (who === 'p2'){ p2.no++; elP2Score.textContent = p2.ok + ' / ' + p2.no; elLead.textContent = leadText(); }
-    elFeedback.textContent = '✗ Wrong'; elFeedback.className = 'feedback no';
-    playAudio(SND_NO); consumeRound();
+    elFeedback.textContent = '✗ Wrong';
+    elFeedback.className = 'feedback no';
+    sfx.wrong();
+    consumeRound();
+
     await afterOverlayThenNext(flashAsync(fxBad, BAD_POOL, 450));
   }
 
   async function skip(){
-    if(awaitingTurnStart || !running || !current || awaitingOverlay || current._done) return;
-    current._done = true; freezeInputs(); stopTimer();
-    bad++; setCurrentStreak(0); renderStreak();
-    elFeedback.textContent='⏭ Skipped'; elFeedback.className='feedback no';
+    if(awaitingTurnStart || !running) return;
+    if(awaitingOverlay || !current || current._done) return;
+    current._done = true;
+    freezeInputs();
+    stopTimer();
+    bad++;
+    setCurrentStreak(0); renderStreak();
+    elFeedback.textContent='⏭ Skipped';
+    elFeedback.className='feedback no';
     consumeRound();
     await afterOverlayThenNext(flashAsync(fxBad, BAD_POOL, 300));
   }
 
-  // --- Events
+  // Timer
+  function startTimerIfNeeded(){
+    const sec=+elTimerSec.value;
+    if(!sec){ elTimer.textContent='Timer: off'; elTimer.style.color='var(--ink)'; return; }
+    remaining=sec; renderTimer(); stopTimer();
+    tick=setInterval(()=>{
+      remaining--;
+      if(remaining>0){ sfx.tick(); renderTimer(); return; }
+      // timeout
+      stopTimer();
+      if (!current || current._done) { renderTimer(); return; } // guard
+      current._done = true;
+      bad++;
+      setCurrentStreak(0); renderStreak();
+      elFeedback.textContent='Time out — next!'; elFeedback.className='feedback no';
+      sfx.timeout();
+      consumeRound();
+      afterOverlayThenNext(flashAsync(fxBad,BAD_POOL,700));
+    },1000);
+  }
+  function stopTimer(){ if(tick){ clearInterval(tick); tick=null; } }
+  function renderTimer(){
+    const warn=remaining<=Math.max(3,Math.floor(+elTimerSec.value*0.25));
+    elTimer.textContent='⏱ '+remaining+'s'; elTimer.style.color=warn?'var(--warn)':'var(--ink)';
+  }
+
+  // UI events
   elDiff.addEventListener('input',()=>{ elDiffVal.textContent=elDiff.value; });
   elTimerSec.addEventListener('input',()=>{ elTimerVal.textContent=elTimerSec.value+'s'; });
-  elPlayers.addEventListener('change', ()=>{ if (elPlayers.value === "1") playAudio(SND_SINGLE); else playAudio(SND_HEAD); uiMode(); });
+
   elStart.addEventListener('click',start);
   elReset.addEventListener('click',reset);
-  elBtn1.addEventListener('click',()=>{ handleSubmit(elAns1.value,'solo'); });
-  elBtnP1.addEventListener('click',()=>{ if(elPlayers.value==='2' && turn==='p1') handleSubmit(elP1.value,'p1'); });
-  elBtnP2.addEventListener('click',()=>{ if(elPlayers.value==='2' && turn==='p2') handleSubmit(elP2.value,'p2'); });
 
-  elAns1.addEventListener('keydown',e=>{ if(e.key==='Enter')handleSubmit(elAns1.value,'solo'); if(e.key==='Escape')elAns1.value=''; });
-  elP1  .addEventListener('keydown',e=>{ if(e.key==='Enter'&&turn==='p1')handleSubmit(elP1.value,'p1'); if(e.key==='Escape')elP1.value=''; });
-  elP2  .addEventListener('keydown',e=>{ if(e.key==='Enter'&&turn==='p2')handleSubmit(elP2.value,'p2'); if(e.key==='Escape')elP2.value=''; });
+  elBtn1.addEventListener('click',()=>{ handleSubmit(elAns1.value.trim(),'solo'); });
+  elBtnP1.addEventListener('click',()=>{ if(elPlayers.value==='2' && turn==='p1') handleSubmit(elP1.value.trim(),'p1'); });
+  elBtnP2.addEventListener('click',()=>{ if(elPlayers.value==='2' && turn==='p2') handleSubmit(elP2.value.trim(),'p2'); });
 
-  // global shortcuts
-  window.addEventListener('keydown',e=>{
-    const tag=(document.activeElement&&document.activeElement.tagName)||'';
-    if(e.key && e.key.toLowerCase()==='s'){ if(tag==='INPUT') return; skip(); }
-    if(e.key && e.key.toLowerCase()==='n'){ if(tag==='INPUT') return; // panic-next
-      if(!current || current._done) return;
-      current._done=true; consumeRound(); afterOverlayThenNext(Promise.resolve());
-    }
-    if(awaitingTurnStart && (e.key===' '||e.key==='Enter')){ e.preventDefault(); btnBeginTurn.click(); }
+  elAns1.addEventListener('keydown',e=>{ if(e.key==='Enter')handleSubmit(elAns1.value.trim(),'solo'); if(e.key==='Escape')elAns1.value=''; });
+  elP1  .addEventListener('keydown',e=>{ if(e.key==='Enter'&&turn==='p1')handleSubmit(elP1.value.trim(),'p1'); if(e.key==='Escape')elP1.value=''; });
+  elP2  .addEventListener('keydown',e=>{ if(e.key==='Enter'&&turn==='p2')handleSubmit(elP2.value.trim(),'p2'); if(e.key==='Escape')elP2.value=''; });
+
+  window.addEventListener('keydown',e=>{ if(e.key && e.key.toLowerCase()==='s') skip(); });
+
+  [elAns1,elP1,elP2].forEach(inp=>{
+    inp.addEventListener('input',()=>{ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); });
   });
 
-  [elAns1,elP1,elP2].forEach(inp=>{ inp.addEventListener('input',()=>{ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); }); });
-
-  btnBeginTurn.addEventListener('click', function(){
-    hideTurnOverlay(); qCount = 0; elQIndex.textContent = '0'; setRowVis(); next(true);
-  });
-
-  finalClose.addEventListener('click', ()=>{ finalOv.classList.remove('show'); finalOv.setAttribute('aria-hidden','true'); });
-
-  // --- Init (safe)
+  // Init
+  setRandomBgm(); attemptAutoplay();
   fxGoodImg.src = "images/Macky-Correct-2.jpg";
   fxBadImg.src  = "images/Macky-Incorrect-1.png";
   fxGoodVid.style.display='none'; fxBadVid.style.display='none';
-  running=false; current=null; qCount=0;
+
+  stopTimer(); running=false; current=null; qCount=0;
   elFormula.textContent='—'; elFeedback.textContent=' '; elFeedback.className='feedback'; elTimer.textContent='Timer: off';
   elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
-  elQIndex.textContent='0'; renderStreak(); uiMode();
+  elQIndex.textContent='0'; renderStreak();
+  uiMode();
 })();
-}); // DOMContentLoaded
 </script>
 </body>
 </html>
-```
