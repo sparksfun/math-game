@@ -278,7 +278,6 @@
   const finalOv = $('#finalOverlay'), finalScore = $('#finalScore'), finalClose = $('#finalClose');
 
   // ===== State =====
-  // FIX: removed stray undefined entry caused by double comma
   const GOOD_IMAGES=[
     "images/Correct1.webp","images/Correct2.webp","images/Correct4.png","images/Correct5.png","images/Correct6.png",
     "images/Correct7.png","images/Correct8.png","images/Correct9.png","images/Correct10.png",
@@ -288,8 +287,8 @@
     "images/Wrong1.png","images/Wrong2.png","images/Wrong3.png","images/Wrong4.jpg","images/Wrong5.webp","images/Wrong6.png","images/Wrong7.png",
     "images/KpopWrong1.mp4","images/KpopWrong2.mp4","images/KpopWrong3.mp4","images/KpopWrong4.mp4"
   ];
-  const GOOD_VIDEOS=[/* optional video files */];
-  const BAD_VIDEOS =[/* optional video files */];
+  const GOOD_VIDEOS=[];
+  const BAD_VIDEOS =[];
 
   const GOOD_POOL = GOOD_IMAGES.concat(GOOD_VIDEOS);
   const BAD_POOL  = BAD_IMAGES .concat(BAD_VIDEOS);
@@ -431,6 +430,27 @@
     }, ms);
   }
 
+  // FIX: make video/gif display robust; handle autoplay, errors, and ensure first frame shows
+  function prepVideo(v){
+    try{
+      v.pause();
+      v.removeAttribute('src');
+      v.load?.();
+      v.muted = true;            // allow autoplay reliably
+      v.playsInline = true;
+      v.preload = 'auto';
+      v.currentTime = 0;
+    }catch(e){}
+  }
+
+  function focusActiveInput(){
+    if (elPlayers.value==='1'){
+      elAns1.disabled=false; elAns1.focus();
+    } else {
+      setRowVis();
+    }
+  }
+
   function flashAsync(el, pool, hold){
     hold = hold || 600;
     return new Promise(resolve=>{
@@ -438,9 +458,7 @@
       const imgEl  = isGood ? fxGoodImg : fxBadImg;
       const vidEl  = isGood ? fxGoodVid : fxBadVid;
 
-      try{ vidEl.pause(); }catch(e){}
-      vidEl.removeAttribute('src');
-      vidEl.load?.();
+      prepVideo(vidEl);
 
       const lastKey = isGood ? '_lastGood' : '_lastBad';
       const poolArr = (pool && pool.length) ? pool.filter(Boolean) : [BLANK_IMG];
@@ -454,7 +472,6 @@
       if (isVideo(pick)){
         imgEl.style.display='none';
         vidEl.style.display='block';
-        vidEl.volume = 1;
 
         const onEnded = ()=>{
           cleanup();
@@ -462,13 +479,32 @@
           el.classList.remove('show');
           resolve();
         };
+        const onError = ()=>{
+          cleanup();
+          endDucking();
+          // fallback quick hide so it won't "hang" blank
+          scheduleHide(el, Math.max(hold, 800), resolve);
+        };
         const cleanup = ()=>{
           vidEl.removeEventListener('ended', onEnded);
+          vidEl.removeEventListener('error', onError);
+          vidEl.removeEventListener('stalled', onError);
+          vidEl.removeEventListener('abort', onError);
+          vidEl.removeEventListener('loadeddata', onLoadedData);
           if (vidEl._fallbackTimer){ clearTimeout(vidEl._fallbackTimer); vidEl._fallbackTimer=null; }
+        };
+        const onLoadedData = ()=>{
+          // ensure we actually see a frame even if autoplay is flaky
+          try{ if (vidEl.paused) vidEl.play().catch(()=>{}); }catch(e){}
         };
 
         beginDucking();
         vidEl.addEventListener('ended', onEnded);
+        vidEl.addEventListener('error', onError);
+        vidEl.addEventListener('stalled', onError);
+        vidEl.addEventListener('abort', onError);
+        vidEl.addEventListener('loadeddata', onLoadedData);
+
         vidEl.onloadedmetadata = ()=>{
           const ms = Math.max(hold, ((vidEl.duration||0)*1000|0)+150);
           vidEl._fallbackTimer = setTimeout(()=>{ onEnded(); }, ms+50);
@@ -476,7 +512,8 @@
         vidEl.src = pick;
 
         vidEl.play().catch(()=>{
-          scheduleHide(el, Math.max(hold, 4000), ()=>{ endDucking(); resolve(); });
+          // If autoplay is blocked, we still show the first frame (loadeddata) and then hide
+          scheduleHide(el, Math.max(hold, 2000), ()=>{ endDucking(); resolve(); });
         });
         return;
       }
@@ -673,6 +710,8 @@
 
     // ensure correct input enabled for this state
     unfreezeInputs();
+    // FIX: aggressively refocus after the overlay settles to avoid "can't type" feeling
+    setTimeout(focusActiveInput, 0);
 
     startTimerIfNeeded();
   }
@@ -718,7 +757,6 @@
       await promise;
     }finally{
       awaitingOverlay=false;
-      unfreezeInputs();
       next();
     }
   }
@@ -727,10 +765,10 @@
     if(awaitingTurnStart) return;
     if(!running || !current || val==='') return;
 
-    // FIX: hard guard to stop rapid double-submits on the same question
+    // hard guard to stop rapid double-submits on the same question
     if (awaitingOverlay || current._done) return;
-    current._done = true;              // mark consumed immediately
-    freezeInputs();                    // freeze instantly to block extra Enter
+    current._done = true;
+    freezeInputs();
     stopTimer();
 
     const num = Number(val);
@@ -821,6 +859,16 @@
   elP2  .addEventListener('keydown',e=>{ if(e.key==='Enter'&&turn==='p2')handleSubmit(elP2.value.trim(),'p2'); if(e.key==='Escape')elP2.value=''; });
 
   window.addEventListener('keydown',e=>{ if(e.key && e.key.toLowerCase()==='s') skip(); });
+
+  // FIX: if focus is lost, typing a number will refocus the active input so a new answer can be entered
+  window.addEventListener('keydown', (e)=>{
+    if(!running || awaitingOverlay || awaitingTurnStart) return;
+    const isDigit = /^[0-9-]$/.test(e.key||'');
+    if(isDigit && (document.activeElement?.tagName!=='INPUT')){
+      e.preventDefault();
+      focusActiveInput();
+    }
+  });
 
   [elAns1,elP1,elP2].forEach(inp=>{
     inp.addEventListener('input',()=>{ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); });
