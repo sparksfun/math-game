@@ -1,238 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Math Sprint — Head-to-Head</title>
-<style>
-  :root{--bg:#0f1220;--panel:#161a2e;--ink:#e9ecf1;--muted:#aab3c5;--good:#38d39f;--bad:#ff6b6b;--warn:#ffb020;--chip:#232843}
-  *{box-sizing:border-box} html,body{height:100%}
-  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:radial-gradient(1200px 800px at 10% -10%,#1b2142 0%,var(--bg) 55%);color:var(--ink);display:grid;place-items:start stretch}
-  .wrap {width: 100%; margin: 28px 0 56px;}
-
-  header{display:grid;gap:12px;grid-template-columns:1fr auto;align-items:start;margin-bottom:16px}
-  h1{font-weight:800;margin:0;letter-spacing:.2px;font-size:clamp(20px,2.8vw,28px)}
-
-  .controls{display:grid;gap:10px;padding:14px;background:color-mix(in oklab,var(--panel),#000 6%);border:1px solid #262b4a;border-radius:14px;grid-template-columns:repeat(8,minmax(0,1fr));align-items:end}
-  .group{display:grid;gap:6px} label{font-size:12px;color:var(--muted);letter-spacing:.2px}
-  select,input[type="range"],input[type="text"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2c335a;background:#0e1330;color:var(--ink);outline:none}
-  .range-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
-  .chip{background:var(--chip);border:1px solid #2b3155;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
-
-  .btn{appearance:none;border:1px solid #2c335a;background:linear-gradient(180deg,#1e2550,#141a3b);color:#fff;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;letter-spacing:.2px;transition:transform .03s ease,filter .15s ease,border-color .15s ease}
-  .btn:hover{filter:brightness(1.08);border-color:#3a4381} .btn:active{transform:translateY(1px) scale(.997)}
-  .btn.ghost{background:#0e1330;color:var(--muted)} .btn.good{background:linear-gradient(180deg,#16553f,#103c2d);border-color:#1f6b4f;color:#d3ffe9}
-
-  .grid {display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: stretch; }
-  .card{background:var(--panel);border:1px solid #262b4a;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-  .problem{position:relative;display:grid;justify-items:center;align-content:center;gap:16px;background:radial-gradient(600px 340px at 50% -30%,#1a2150 0%,#121633 60%,#0f1329 100%);border-radius:12px;border:1px solid #262b4a;padding:16px}
- .formula { font-size:64px;font-weight:800;letter-spacing:1px;margin-top:40px;margin-left:40px; }
-
-  .timer-mini{position:absolute;top:12px;left:12px;width:88px;height:88px;display:grid;place-items:center;background:#0e1330;border:1px solid #2b3155;border-radius:12px;font-weight:800;letter-spacing:.5px;font-size:20px;box-shadow:0 6px 20px rgba(0,0,0,.35);}
-
-  .answer-rows {display:flex;flex-direction:column;justify-content:flex-end;height:100%;}
-
-  .row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
-  .row input{padding:12px 14px;border-radius:12px;border:1px solid #2c335a;outline:none;background:#0e1330;color:#fff;font-size:clamp(18px,2.2vw,22px);text-align:center;letter-spacing:.5px}
-  .p1{border-left:4px solid #6bd3ff;padding-left:8px;border-radius:10px}
-  .p2{border-left:4px solid #ffb86b;padding-left:8px;border-radius:10px}
-  .avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid #2b3155}
-  .hidden{display:none !important}
-
-  .feedback{height:28px;font-weight:700;letter-spacing:.3px}
-  .feedback.ok{color:var(--good)} .feedback.no{color:var(--bad)}
-
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-  .stat{background:#0e1330;border:1px solid #2b3155;border-radius:12px;padding:10px 12px;display:grid;gap:4px} .stat b{font-size:22px}
-
-  .fx-overlay{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .25s ease;z-index:999}
-  .fx-overlay.show{opacity:1}
-  .fx-overlay img,
-  .fx-overlay video{max-width:min(60vmin,520px);max-height:70vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.55);border:2px solid #2b3155;background:#000}
-
-  .turn-overlay{position:fixed;inset:0;background:rgba(5,8,20,.88);backdrop-filter:blur(6px);display:grid;place-items:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s ease}
-  .turn-overlay.show{opacity:1;pointer-events:auto}
-  .turn-card{background:var(--panel);border:1px solid #2b3155;border-radius:18px;padding:28px;display:grid;gap:14px;place-items:center;box-shadow:0 20px 60px rgba(0,0,0,.45)}
-  .turn-card h2{margin:0;font-size:clamp(20px,3.2vw,28px)}
-  .turn-avatar{width:min(22vmin,140px);height:min(22vmin,140px);border-radius:50%;object-fit:cover;border:2px solid #2b3155}
-
-  footer{margin-top:14px;color:var(--muted);font-size:12px;display:flex;gap:12px;align-items:center}
-
-  @media (max-width:1200px){ .controls{grid-template-columns:repeat(4,minmax(0,1fr));} }
-  @media (max-width:860px){ .controls{grid-template-columns:1fr 1fr} .grid{grid-template-columns:1fr} }
-  @media (max-width:700px){ .controls{grid-template-columns:1fr;} }
-
-  .final-overlay{position:fixed;inset:0;background:rgba(5,8,20,.88);backdrop-filter:blur(6px);
-    display:grid;place-items:center;z-index:1100;opacity:0;pointer-events:none;transition:opacity .2s ease}
-  .final-overlay.show{opacity:1;pointer-events:auto}
-  .final-card{background:var(--panel);border:1px solid #2b3155;border-radius:20px;padding:30px 28px;
-    display:grid;gap:14px;place-items:center;box-shadow:0 24px 64px rgba(0,0,0,.5);max-width:min(90vw,780px)}
-  .final-card h2{margin:0;font-size:clamp(18px,2.6vw,26px);color:var(--muted)}
-  .final-score{font-weight:900;letter-spacing:.3px;text-align:center;
-    font-size:clamp(28px,4.8vw,56px);line-height:1.15}
-</style>
-</head>
-<body>
-  <div class="wrap">
-    <header>
-      <h1>Math Sprint</h1>
-      <div style="display:flex;gap:10px">
-        <button id="btnStart" class="btn good">Start ▶</button>
-        <button id="btnReset" class="btn ghost">Reset ⟲</button>
-      </div>
-    </header>
-
-    <section class="controls">
-      <div class="group">
-        <label>Mode</label>
-        <select id="mode">
-          <option value="add">Add (+)</option>
-          <option value="sub">Subtract (−)</option>
-          <option value="mul">Multiply (×)</option>
-          <option value="div">Divide (÷)</option>
-          <option value="mix" selected>Mix</option>
-        </select>
-      </div>
-      <div class="group">
-        <label>Difficulty (1–10)</label>
-        <div class="range-row">
-          <input id="difficulty" type="range" min="1" max="10" value="3" />
-          <span id="diffVal" class="chip">3</span>
-        </div>
-      </div>
-      <div class="group">
-        <label>Timer / Q (0=off)</label>
-        <div class="range-row">
-          <input id="timerSec" type="range" min="0" max="60" value="10" />
-          <span id="timerVal" class="chip">10s</span>
-        </div>
-      </div>
-      <div class="group">
-        <label>Rounds per player</label>
-        <select id="rounds"><option>5</option><option selected>10</option><option>15</option><option>20</option></select>
-      </div>
-      <div class="group">
-        <label>Players</label>
-        <select id="players">
-          <option value="1" selected>Single</option>
-          <option value="2">Head-to-Head (2)</option>
-        </select>
-      </div>
-
-      <div class="group">
-        <label>Music</label>
-        <div class="range-row">
-          <select id="musicOn"><option value="1" selected>On</option><option value="0">Off</option></select>
-          <span class="chip">Vol</span>
-        </div>
-        <input id="musicVol" type="range" min="0" max="1" step="0.01" value="0.35" />
-      </div>
-      <div class="group">
-        <label>Sound FX</label>
-        <div class="range-row">
-          <select id="soundOn"><option value="1" selected>On</option><option value="0">Off</option></select>
-          <span class="chip">Vol</span>
-        </div>
-        <input id="volume" type="range" min="0" max="1" step="0.01" value="0.5" />
-      </div>
-
-      <div class="group">
-        <label>&nbsp;</label>
-        <span class="chip">Start turn: Space/Enter • Submit: Enter • Skip: S</span>
-      </div>
-    </section>
-
-    <section class="grid" style="margin-top:16px">
-      <div class="card">
-        <div class="problem" id="problem">
-          <div class="timer-mini" id="timerMini" aria-live="polite">Timer: off</div>
-          <div class="turn" id="turnBanner">—</div>
-          <div id="formula" class="formula">—</div>
-
-          <div id="singleRows" class="answer-rows" style="display:grid">
-            <div class="row">
-              <img id="soloAvatar" class="avatar hidden" alt="">
-              <input id="answer1" class="p1" type="text" inputmode="numeric" placeholder="Your answer…" disabled />
-              <button id="btnSubmit1" class="btn">Submit ⏎</button>
-            </div>
-          </div>
-
-          <div id="multiRows" class="answer-rows" style="display:none">
-            <div class="row" id="rowP1">
-              <img id="avatarP1" class="avatar" src="players/p1.png" alt="P1" onerror="this.style.display='none'">
-              <input id="answerP1" class="p1" type="text" inputmode="numeric" placeholder="Aliah…" disabled />
-              <button id="btnSubmitP1" class="btn">Submit</button>
-            </div>
-            <div class="row" id="rowP2">
-              <img id="avatarP2" class="avatar" src="players/p2.png" alt="P2" onerror="this.style.display='none'">
-              <input id="answerP2" class="p2" type="text" inputmode="numeric" placeholder="Aliana…" disabled />
-              <button id="btnSubmitP2" class="btn">Submit</button>
-            </div>
-          </div>
-
-          <div id="feedback" class="feedback">&nbsp;</div>
-        </div>
-
-        <div id="versus" class="stats" style="display:none">
-          <div class="stat"><label id="lblP1">Aliah ✓ / ✗</label><b id="p1Score">0 / 0</b></div>
-          <div class="stat"><label id="lblP2">Aliana ✓ / ✗</label><b id="p2Score">0 / 0</b></div>
-          <div class="stat"><label>Lead</label><b id="lead">—</b></div>
-        </div>
-
-        <footer>Shortcuts: Start turn (Space/Enter) • Submit (Enter) • Esc clear • S skip</footer>
-      </div>
-
-      <div class="card">
-        <div class="stat"><label>Question</label><b id="qIndex">0</b></div>
-        <div class="stat"><label>Streak</label><b id="streak">0</b></div>
-      </div>
-    </section>
-  </div>
-
-  <!-- result overlays -->
-  <div id="fxGood" class="fx-overlay">
-    <img id="fxGoodImg" alt="Correct">
-    <video id="fxGoodVid" playsinline preload="metadata"></video>
-  </div>
-  <div id="fxBad"  class="fx-overlay">
-    <img id="fxBadImg"  alt="Incorrect">
-    <video id="fxBadVid" playsinline preload="metadata"></video>
-  </div>
-
-  <!-- Turn overlay -->
-  <div id="turnOverlay" class="turn-overlay">
-    <div class="turn-card">
-      <img id="turnAvatar" class="turn-avatar" alt="">
-      <h2 id="turnText">Next up: —</h2>
-      <button id="btnBeginTurn" class="btn good">Start turn ▶</button>
-      <div class="chip">or press Space / Enter</div>
-    </div>
-  </div>
-
-  <!-- Final Result overlay -->
-  <div id="finalOverlay" class="final-overlay" aria-hidden="true">
-    <div id="finalCard" class="final-card">
-      <h2>Session complete</h2>
-      <div id="finalScore" class="final-score">—</div>
-      <button id="finalClose" class="btn">Close ✕</button>
-    </div>
-  </div>
-
-  <!-- Audio elements -->
-  <audio id="bgm" src="" loop preload="auto"></audio>
-  <audio id="sndCorrect" src="sounds/correct.mp3" preload="auto"></audio>
-  <audio id="sndWrong"   src="sounds/wrong.mp3"   preload="auto"></audio>
-  <audio id="sndFinish"  src="sounds/finish.mp3"  preload="auto"></audio>
-  <audio id="sndStart"   src="sounds/start.mp3"   preload="auto"></audio>
-  <audio id="sndSingle"  src="sounds/single.mp3"  preload="auto"></audio>
-  <audio id="sndHead"    src="sounds/head2head.mp3" preload="auto"></audio>
-
 <script>
 (function(){
   // ===== Constants =====
   const NAME_P1 = 'Aliah';
   const NAME_P2 = 'Aliana';
   const STILL_MIN_MS = 1600;
+  const HARD_OVERLAY_MS = 6500; // absolute safety cap for overlays
 
   // Music
   const MUSIC_TRACKS = [
@@ -278,7 +50,6 @@
   const finalOv = $('#finalOverlay'), finalScore = $('#finalScore'), finalClose = $('#finalClose');
 
   // ===== State =====
-  // FIX: removed stray undefined entry caused by double comma
   const GOOD_IMAGES=[
     "images/Correct1.webp","images/Correct2.webp","images/Correct4.png","images/Correct5.png","images/Correct6.png",
     "images/Correct7.png","images/Correct8.png","images/Correct9.png","images/Correct10.png",
@@ -288,9 +59,7 @@
     "images/Wrong1.png","images/Wrong2.png","images/Wrong3.png","images/Wrong4.jpg","images/Wrong5.webp","images/Wrong6.png","images/Wrong7.png",
     "images/KpopWrong1.mp4","images/KpopWrong2.mp4","images/KpopWrong3.mp4","images/KpopWrong4.mp4"
   ];
-  const GOOD_VIDEOS=[/* optional video files */];
-  const BAD_VIDEOS =[/* optional video files */];
-
+  const GOOD_VIDEOS=[]; const BAD_VIDEOS =[];
   const GOOD_POOL = GOOD_IMAGES.concat(GOOD_VIDEOS);
   const BAD_POOL  = BAD_IMAGES .concat(BAD_VIDEOS);
 
@@ -383,7 +152,7 @@
     }
   }
 
-  // ===== Media helpers =====
+  // ===== Media helpers (HARDENED) =====
   const BLANK_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
   const isGif   = src => /\.gif(?:$|\?)/i.test(src);
   const isVideo = src => /\.(mp4)(?:$|\?)/i.test(src);
@@ -438,6 +207,32 @@
       const imgEl  = isGood ? fxGoodImg : fxBadImg;
       const vidEl  = isGood ? fxGoodVid : fxBadVid;
 
+      // SAFETY: hard cap so we never hang
+      let safety = setTimeout(()=>{ cleanup(); endDucking(); el.classList.remove('show'); resolve(); }, Math.max(hold, HARD_OVERLAY_MS));
+      const clearSafety = ()=>{ if(safety){ clearTimeout(safety); safety=null; } };
+
+      const cleanup = ()=>{
+        // remove listeners and stop media
+        vidEl.onloadedmetadata = null;
+        vidEl.removeEventListener('ended', onEnded);
+        vidEl.removeEventListener('error', onEnded);
+        vidEl.removeEventListener('stalled', onEnded);
+        vidEl.removeEventListener('abort', onEnded);
+        try{ vidEl.pause(); }catch(e){}
+        try{ vidEl.removeAttribute('src'); vidEl.load?.(); }catch(e){}
+        if (vidEl._fallbackTimer){ clearTimeout(vidEl._fallbackTimer); vidEl._fallbackTimer=null; }
+        if (el._errAttempts) el._errAttempts=0;
+        if (el._imgTimer){ clearTimeout(el._imgTimer); el._imgTimer=null; }
+      };
+
+      const onEnded = ()=>{
+        cleanup();
+        clearSafety();
+        endDucking();
+        el.classList.remove('show');
+        resolve();
+      };
+
       try{ vidEl.pause(); }catch(e){}
       vidEl.removeAttribute('src');
       vidEl.load?.();
@@ -456,28 +251,28 @@
         vidEl.style.display='block';
         vidEl.volume = 1;
 
-        const onEnded = ()=>{
-          cleanup();
-          endDucking();
-          el.classList.remove('show');
-          resolve();
-        };
-        const cleanup = ()=>{
-          vidEl.removeEventListener('ended', onEnded);
-          if (vidEl._fallbackTimer){ clearTimeout(vidEl._fallbackTimer); vidEl._fallbackTimer=null; }
-        };
-
         beginDucking();
+
         vidEl.addEventListener('ended', onEnded);
+        // NEW: error/stall fallbacks
+        vidEl.addEventListener('error', onEnded);
+        vidEl.addEventListener('stalled', onEnded);
+        vidEl.addEventListener('abort', onEnded);
+
         vidEl.onloadedmetadata = ()=>{
           const ms = Math.max(hold, ((vidEl.duration||0)*1000|0)+150);
-          vidEl._fallbackTimer = setTimeout(()=>{ onEnded(); }, ms+50);
+          vidEl._fallbackTimer = setTimeout(()=>{ onEnded(); }, ms+80);
         };
-        vidEl.src = pick;
 
-        vidEl.play().catch(()=>{
-          scheduleHide(el, Math.max(hold, 4000), ()=>{ endDucking(); resolve(); });
-        });
+        try{
+          vidEl.src = pick;
+          const p = vidEl.play();
+          if (p && typeof p.then === 'function'){
+            p.catch(()=>{ scheduleHide(el, Math.max(hold, 4000), ()=>{ onEnded(); }); });
+          }
+        }catch(e){
+          scheduleHide(el, Math.max(hold, 4000), ()=>{ onEnded(); });
+        }
         return;
       }
 
@@ -491,29 +286,30 @@
         if (attempts<3){
           el[lastKey] = -1;
           el.classList.remove('show');
+          clearSafety();
           resolve();
         }else{
           imgEl.src = BLANK_IMG;
-          scheduleHide(el, STILL_MIN_MS, ()=>{ el._errAttempts=0; resolve(); });
+          el._imgTimer = scheduleHide(el, STILL_MIN_MS, ()=>{ el._errAttempts=0; clearSafety(); resolve(); });
         }
       };
       imgEl.onload = ()=>{ el._errAttempts=0; };
       imgEl.src = pick || BLANK_IMG;
 
       if (!isGif(pick)) {
-        scheduleHide(el, Math.max(hold, STILL_MIN_MS), resolve);
+        scheduleHide(el, Math.max(hold, STILL_MIN_MS), ()=>{ clearSafety(); resolve(); });
         return;
       }
 
       const override = gifHoldFromName(pick);
       if (override != null){
-        scheduleHide(el, Math.max(hold, override), resolve);
+        scheduleHide(el, Math.max(hold, override), ()=>{ clearSafety(); resolve(); });
         return;
       }
       computeGifDurationMs(pick).then(ms=>{
-        scheduleHide(el, Math.max(hold, (ms||2500)+150), resolve);
+        scheduleHide(el, Math.max(hold, (ms||2500)+150), ()=>{ clearSafety(); resolve(); });
       }).catch(()=>{
-        scheduleHide(el, Math.max(hold, 2500), resolve);
+        scheduleHide(el, Math.max(hold, 2500), ()=>{ clearSafety(); resolve(); });
       });
     });
   }
@@ -569,13 +365,14 @@
     if(two) setRowVis();
   }
 
-  // freeze/unfreeze inputs to avoid stuck-disabled state
+  // freeze/unfreeze inputs (now aware of overlays)
   function freezeInputs(){ elAns1.disabled=true; elP1.disabled=true; elP2.disabled=true; }
   function unfreezeInputs(){
+    if (awaitingOverlay || awaitingTurnStart) return;
     if(elPlayers.value==='1'){
       elAns1.disabled=false; elAns1.focus();
     }else{
-      setRowVis(); // sets proper enabled field and focuses it
+      setRowVis();
     }
   }
 
@@ -594,8 +391,9 @@
     overlay.classList.add('show');
     awaitingTurnStart = true;
     renderStreak();
+    freezeInputs();
   }
-  function hideTurnOverlay(){ overlay.classList.remove('show'); awaitingTurnStart=false; }
+  function hideTurnOverlay(){ overlay.classList.remove('show'); awaitingTurnStart=false; unfreezeInputs(); }
 
   btnBeginTurn.addEventListener('click', function(){
     hideTurnOverlay();
@@ -633,6 +431,18 @@
     uiMode();
   }
 
+  function hardHideFX(){
+    [fxGood, fxBad].forEach(el=>{
+      el.classList.remove('show');
+      const vid = el===fxGood ? fxGoodVid : fxBadVid;
+      try{ vid.pause(); }catch(e){}
+      try{ vid.removeAttribute('src'); vid.load?.(); }catch(e){}
+      if (el._hideTimer) { clearTimeout(el._hideTimer); el._hideTimer=null; }
+    });
+    endDucking();
+    awaitingOverlay=false;
+  }
+
   function reset(){
     stopTimer(); running=false; current=null; qCount=good=bad=0; p1={ok:0,no:0,played:0}; p2={ok:0,no:0,played:0};
     streakSolo=streakP1=streakP2=0; renderStreak();
@@ -642,6 +452,8 @@
     elP1Score.textContent='0 / 0'; elP2Score.textContent='0 / 0'; elLead.textContent='—';
     elQIndex.textContent='0';
     overlay.classList.remove('show'); awaitingTurnStart=false;
+    hideFinal();
+    hardHideFX();
   }
 
   function next(initial){
@@ -671,9 +483,7 @@
     elFeedback.textContent=' '; elFeedback.className='feedback';
     renderStreak();
 
-    // ensure correct input enabled for this state
     unfreezeInputs();
-
     startTimerIfNeeded();
   }
 
@@ -700,13 +510,15 @@
       scoreLine = good+' correct, '+bad+' wrong, accuracy '+(acc==='—'?'—':acc+'%');
     }
     elFeedback.textContent=' '; elFeedback.className='feedback'; showFinal(scoreLine);
+    freezeInputs();
   }
 
   function showFinal(text){ finalScore.textContent=text; finalOv.classList.add('show'); finalOv.setAttribute('aria-hidden','false'); }
   function hideFinal(){ finalOv.classList.remove('show'); finalOv.setAttribute('aria-hidden','true'); }
+
   finalClose.addEventListener('click', hideFinal);
   finalOv.addEventListener('click', e=>{ if(e.target===finalOv) hideFinal(); });
-  window.addEventListener('keydown', e=>{ if(e.key==='Escape') hideFinal(); });
+  window.addEventListener('keydown', e=>{ if(e.key==='Escape') { if(finalOv.classList.contains('show')) hideFinal(); } });
 
   function consumeRound(){ if(elPlayers.value==='2'){ (turn==='p1'?p1:p2).played++; } }
   function leadText(){ const d=p1.ok-p2.ok; return d===0?'Tied':(d>0?(NAME_P1)+' +'+d:(NAME_P2)+' +'+(-d)); }
@@ -715,11 +527,16 @@
     try{
       awaitingOverlay=true;
       freezeInputs();
-      await promise;
+      // absolute timeout so we never hang on a bad media file
+      const timed = Promise.race([
+        promise,
+        new Promise(res=>setTimeout(res, HARD_OVERLAY_MS+200))
+      ]);
+      await timed;
     }finally{
       awaitingOverlay=false;
       unfreezeInputs();
-      next();
+      try{ next(); }catch(e){ /* swallow to avoid breaking the loop */ }
     }
   }
 
@@ -727,10 +544,10 @@
     if(awaitingTurnStart) return;
     if(!running || !current || val==='') return;
 
-    // FIX: hard guard to stop rapid double-submits on the same question
+    // guard against double-submit on same question
     if (awaitingOverlay || current._done) return;
-    current._done = true;              // mark consumed immediately
-    freezeInputs();                    // freeze instantly to block extra Enter
+    current._done = true;
+    freezeInputs();
     stopTimer();
 
     const num = Number(val);
@@ -820,7 +637,14 @@
   elP1  .addEventListener('keydown',e=>{ if(e.key==='Enter'&&turn==='p1')handleSubmit(elP1.value.trim(),'p1'); if(e.key==='Escape')elP1.value=''; });
   elP2  .addEventListener('keydown',e=>{ if(e.key==='Enter'&&turn==='p2')handleSubmit(elP2.value.trim(),'p2'); if(e.key==='Escape')elP2.value=''; });
 
-  window.addEventListener('keydown',e=>{ if(e.key && e.key.toLowerCase()==='s') skip(); });
+  // Skip shortcut: ignore if typing in an input
+  window.addEventListener('keydown',e=>{
+    if(e.key && e.key.toLowerCase()==='s'){
+      const ae = document.activeElement;
+      if (ae && ae.tagName === 'INPUT') return;
+      skip();
+    }
+  });
 
   [elAns1,elP1,elP2].forEach(inp=>{
     inp.addEventListener('input',()=>{ inp.value=inp.value.replace(/[^\d-]/g,'').replace(/(?!^)-/g,''); });
@@ -839,5 +663,3 @@
   uiMode();
 })();
 </script>
-</body>
-</html>
